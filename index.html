@@ -12,6 +12,8 @@
             color: white;
             background-color: #808080;
             /* Medium gray */
+            overflow: hidden;
+            /* Prevent scrollbars */
         }
 
         #container {
@@ -23,176 +25,348 @@
             z-index: -1;
         }
 
-        #ui-container {
+        /* UI Layer - sits above the 3D canvas */
+        #ui-layer {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
             pointer-events: none;
-            /* Allows clicks to pass through the container */
-        }
-
-        #ui-top-left,
-        #ui-top-right,
-        #ui-bottom-left,
-        #ui-bottom-right {
-            position: absolute;
+            /* Let clicks pass through to canvas */
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
             padding: 20px;
-            background: rgba(0, 0, 0, 0.5);
-            border-radius: 10px;
-            pointer-events: auto;
-            /* Enable clicks on the panels */
-            /* Ensure padding/border don't exceed the max-width set by JS */
             box-sizing: border-box;
         }
 
-        #ui-top-left {
-            top: 20px;
-            left: 20px;
+        /* Floating Info Elements */
+        .ui-element {
+            pointer-events: auto;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
         }
 
-        #ui-top-right {
-            top: 20px;
-            right: 20px;
-            text-align: right;
+        #top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
         }
 
-        #ui-bottom-left {
-            bottom: 20px;
-            left: 20px;
+        #bottom-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
         }
 
-        #ui-bottom-right {
-            bottom: 20px;
-            right: 20px;
-            text-align: right;
+        h1#title {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 300;
         }
 
-        #ui-bottom-left,
-        #ui-bottom-right {
-            background: none;
-        }
-
-        button {
-            margin: 5px;
-            padding: 10px;
-            border-radius: 5px;
-            border: none;
-            cursor: pointer;
+        #version {
+            font-size: 12px;
+            opacity: 0.7;
+            margin-top: 5px;
         }
 
         #digital-time {
-            margin-top: 10px;
             font-size: 24px;
+            font-weight: 300;
         }
 
-        /* --- NEW MODAL STYLES --- */
+        #copyright {
+            font-size: 12px;
+            opacity: 0.7;
+            margin: 0;
+        }
+
+        /* Floating Buttons */
+        .icon-btn {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-left: 10px;
+            transition: background 0.2s;
+            pointer-events: auto;
+            backdrop-filter: blur(4px);
+        }
+
+        .icon-btn:hover {
+            background: rgba(0, 0, 0, 0.6);
+        }
+
+        .icon-btn.active {
+            background: rgba(173, 255, 47, 0.3);
+            /* Green tint */
+            border-color: rgba(173, 255, 47, 0.8);
+        }
+
+        #controls-desktop {
+            display: flex;
+            align-items: center;
+        }
+
+        #digital-time {
+            position: absolute;
+            top: 20px;
+            right: 120px;
+            /* Moved further left */
+            color: #00ffcc;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 1.2em;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        #settings-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 20;
+            font-size: 20px;
+            padding: 8px 12px;
+        }
+
+        /* Settings Panel (Slide-in) */
+        #settings-panel {
+            position: fixed;
+            top: 0;
+            right: -300px;
+            /* Hidden by default */
+            width: 300px;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(10px);
+            z-index: 100;
+            transition: right 0.3s ease-in-out;
+            padding: 20px;
+            box-sizing: border-box;
+            overflow-y: auto;
+            pointer-events: auto;
+            border-left: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        #settings-panel.open {
+            right: 0;
+        }
+
+        #settings-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 10px;
+        }
+
+        #settings-header h2 {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 400;
+        }
+
+        #close-settings {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 0;
+            margin: 0;
+        }
+
+        .settings-section {
+            margin-bottom: 20px;
+        }
+
+        .settings-section h3 {
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #aaa;
+            margin-bottom: 10px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+        }
+
+        /* Mobile Toolbar (Hidden on Desktop) */
+        #mobile-toolbar {
+            display: none;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            padding: 10px;
+            justify-content: space-around;
+            z-index: 50;
+            pointer-events: auto;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* Modal Styles (Existing, slightly tweaked) */
         #modal-explainer {
             position: fixed;
             z-index: 1000;
-            /* High z-index to ensure it sits above everything */
             left: 0;
             top: 0;
             width: 100%;
             height: 100%;
             overflow: auto;
             background-color: rgba(0, 0, 0, 0.8);
-            /* Dark semi-transparent overlay */
             display: none;
-            /* Controlled by JavaScript */
             backdrop-filter: blur(5px);
+            pointer-events: auto;
         }
 
         #modal-content {
-            background-color: #555;
+            background-color: #333;
             color: white;
             margin: 15% auto;
-            /* Center vertically and horizontally */
             padding: 20px;
-            border: 1px solid #888;
+            border: 1px solid #555;
             width: 90%;
             max-width: 500px;
-            /* Limits the width for desktop */
             border-radius: 10px;
-            box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
             text-align: center;
-        }
-
-        #modal-content p {
-            text-align: left;
-            margin-bottom: 20px;
         }
 
         #modal-close-button {
             background-color: #ADFF2F;
-            /* Same color as the hour sphere */
             color: black;
             font-weight: bold;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
         }
 
-        /* --- END NEW MODAL STYLES --- */
-
-
-        /* Media Query for Mobile Devices */
+        /* Responsive Adjustments */
         @media (max-width: 600px) {
-            #ui-container {
-                top: auto;
-                bottom: 0;
-                left: 0;
-                right: 0;
-                width: 100%;
-                height: auto;
-                border-radius: 0;
-                text-align: center;
-                padding: 10px;
-                background: rgba(0, 0, 0, 0.7);
-                pointer-events: auto;
+            #controls-desktop {
+                display: none;
+                /* Hide desktop buttons */
             }
 
-            #ui-top-left,
-            #ui-top-right,
-            #ui-bottom-left,
-            #ui-bottom-right {
-                position: static;
-                padding: 0;
-                background: none;
-                text-align: center;
+            #mobile-toolbar {
+                display: flex;
+                /* Show mobile toolbar */
             }
 
-            h1#title {
-                font-size: 24px;
+            #settings-btn {
+                top: 15px;
+                right: 15px;
             }
 
-            button {
-                padding: 8px 12px;
+            #top-bar {
+                padding-right: 50px;
+                /* Make room for settings button */
             }
+
+            #bottom-bar {
+                display: none;
+                /* Hide bottom info bar, maybe move copyright to settings? */
+            }
+
+            /* Adjust canvas height to not be covered by toolbar? 
+               Actually, toolbar is overlay, so it's fine. */
         }
     </style>
 </head>
 
 <body>
     <div id="container"></div>
-    <div id="ui-container">
-        <div id="ui-top-left">
-            <h1 id="title">Mobius Clock</h1>
-            <button id="explainer-button">Show Explainer</button>
-        </div>
-        <div id="ui-top-right">
-            <div id="digital-time">12:00:00 AM</div>
-            <button id="rotation-button">Start Rotation</button>
-            <div id="fast-mode-container">
-                <button id="fast-mode-button">Start Fast Mode</button>
+
+    <!-- Main UI Layer -->
+    <div id="ui-layer">
+        <!-- Top Bar -->
+        <div id="top-bar">
+            <div class="ui-element">
+                <h1 id="title">Mobius Clock</h1>
+                <div id="version">Version 0.3.0</div>
+            </div>
+            <!-- Digital Time (Desktop) - on mobile it might be better centered or hidden? 
+                 Proposal said "Digital Time (Large, centered)" for mobile. 
+                 For now keeping it top-right for desktop. -->
+            <div class="ui-element" id="digital-time-container">
+                <div id="digital-time">12:00:00 AM</div>
             </div>
         </div>
-        <div id="ui-bottom-left">
-            <p>Version 0.2.0</p>
-        </div>
-        <div id="ui-bottom-right">
-            <p>(C)2025 Charles L. Wallace / coolweird.com</p>
+
+        <!-- Bottom Bar (Desktop) -->
+        <div id="bottom-bar">
+            <div class="ui-element">
+                <button id="explainer-button" class="icon-btn">WHY?</button>
+                <span id="copyright" style="margin-left: 10px;">(C)2025 Charles L. Wallace</span>
+            </div>
+            <div id="controls-desktop" class="ui-element">
+                <button id="rotation-button" class="icon-btn">Rotate</button>
+                <button id="fast-mode-button" class="icon-btn">Fast Mode</button>
+                <button id="hours-button" class="icon-btn">Show Hours</button>
+            </div>
         </div>
     </div>
 
+    <!-- Settings Button (Fixed) -->
+    <button id="settings-btn" class="icon-btn">⚙️</button>
+
+    <!-- Settings Panel -->
+    <div id="settings-panel">
+        <div id="settings-header">
+            <h2>Settings</h2>
+            <button id="close-settings">×</button>
+        </div>
+
+        <div class="settings-section">
+            <h3>Indicator Shape</h3>
+            <div class="control-group">
+                <label><input type="radio" name="shape" value="sphere" checked> Sphere</label>
+                <label><input type="radio" name="shape" value="disc"> Disc</label>
+            </div>
+        </div>
+
+        <div class="settings-section">
+            <h3>Tick Marks</h3>
+            <div class="control-group">
+                <select id="tick-scheme-select"
+                    style="width: 100%; padding: 5px; background: #444; color: white; border: 1px solid #666;">
+                    <option value="standard">Standard (Hour + Min/Sec)</option>
+                    <option value="minimal">Minimal (Hour Only)</option>
+                    <option value="alternating">Alternating Colors</option>
+                    <option value="alternating_ticks">Alternating + Ticks</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile Toolbar -->
+    <div id="mobile-toolbar">
+        <button id="mobile-explainer" class="icon-btn">?</button>
+        <button id="mobile-rotate" class="icon-btn">Rotate</button>
+        <button id="mobile-fast" class="icon-btn">Fast</button>
+        <button id="mobile-hours" class="icon-btn">Hours</button>
+    </div>
+
+    <!-- Explainer Modal -->
     <div id="modal-explainer" style="display: none;">
         <div id="modal-content">
             <h2>Why a Mobius Clock?</h2>
@@ -315,6 +489,8 @@
         let scene, camera, renderer, mobiusGroup;
         let rotationEnabled = false;
         let fastMode = false;
+        let hourNumbersGroup;
+        let mobiusStripMesh;
 
 
         function init() {
@@ -348,6 +524,7 @@
             createClockHands();
 
             edgePath = m_FrontInnerCorner3DPtArray.concat(m_BackOuterCorner3DPtArray);
+            createHourNumbers();
 
             animate();
         }
@@ -467,125 +644,146 @@
                    Looks like triangles don't get added until we call addGroup below.
                 LEFTOFF
                 */
-
             }
 
             geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
             geometry.setIndex(indices);
 
-            // For simple segment without thirdway points, this is the number of 3D points, equiv 8 triangles.
-            const indicesPerSegment = 48; //24; 
+            const indicesPerSegment = 48;
             const indicesOuterThirds = 36;
             const indicesMiddleThird = 12;
 
-            let currentMaterialIndexHour = -1;
-            let groupStart = 0;
-
-            /* NOTES - ok, previously all groups were the same number of triangles and all were the same material.
-            But with the new min/sec ticks feature, we now have some segments that contain two materials, thus
-            they can't be in the same group.  So, if we want all segments to have the same structure, we'll need
-            to have three groups for each segment (tho maybe we can combine the 2 outer groups, they'll have the 
-            same material).
-            PLAN: when adding indices, add the outer groups first - they'll share same material - for 12 triangles, 36 pts. 
-            Then add central, 4 triangles, 12 points.  Combined total is 16 triangles, 48 pts.
-        	
-            */
-
-            // Add a series of groups to the geometry. For each specify indexes into the indices array and material.
             for (let i = 0; i < m_NumPoints; i++) {
+                let matOuter = 0;
+                let matMiddle = 0;
 
-                const materialIndexHour = (i % 30 === 0) ? 1 : 0;
-                const materialIndexMinute = (i % 6 === 0) ? 1 : 0;
+                const isHourTick = (i % 30 === 0);
+                const isMinuteTick = (i % 6 === 0);
+                const hourIndex = Math.floor(i / 30);
+                const minuteIndex = Math.floor(i / 6);
 
-                // EXPERIMENT in alternating colors
-                //let ii = Math.floor(i/30);
-                //const materialIndexHour = (ii % 2 === 0) ? 1 : 0;
-
-                /*
-                if (i === 0) {
-                    currentMaterialIndexHour = materialIndexHour;
-                }
-            	
-                if (materialIndexHour !== currentMaterialIndexHour) {
-                    //geometry.addGroup(groupStart, i * indicesPerSegment - groupStart, currentMaterialIndexHour);
-                	
-                    geometry.addGroup(groupStart, indicesOuterThirds, 0);
-                    geometry.addGroup(groupStart+indicesOuterThirds, indicesMiddleThird, currentMaterialIndexHour);
-                	
-                	
-                    currentMaterialIndexHour = materialIndexHour;
-                    groupStart = i * indicesPerSegment;
-                }
-                */
-                if (materialIndexHour == 1) {
-                    // set both groups to dark color
-                    geometry.addGroup(groupStart, indicesOuterThirds, 1);
-                    geometry.addGroup(groupStart + indicesOuterThirds, indicesMiddleThird, 1);
-                }
-                else if (materialIndexMinute == 1) {
-                    // set outer to light color, inner to dark
-                    geometry.addGroup(groupStart, indicesOuterThirds, 0);
-                    geometry.addGroup(groupStart + indicesOuterThirds, indicesMiddleThird, 1);
-                }
-                else {
-                    // set both inner and outer to light color
-                    geometry.addGroup(groupStart, indicesOuterThirds, 0);
-                    geometry.addGroup(groupStart + indicesOuterThirds, indicesMiddleThird, 0);
+                switch (currentTickScheme) {
+                    case 'minimal':
+                        // Hour ticks only, full width
+                        matOuter = isHourTick ? 1 : 0;
+                        matMiddle = isHourTick ? 1 : 0;
+                        break;
+                    case 'standard':
+                        // Hour (full width) and Minute (middle only) ticks
+                        matOuter = isHourTick ? 1 : 0;
+                        matMiddle = (isHourTick || isMinuteTick) ? 1 : 0;
+                        break;
+                    case 'alternating':
+                        // Stripes, no specific ticks
+                        matOuter = (hourIndex % 2 === 0) ? 0 : 2;
+                        matMiddle = matOuter;
+                        break;
+                    case 'alternating_ticks':
+                        // Outer: Hour stripes
+                        matOuter = (hourIndex % 2 === 0) ? 0 : 2;
+                        // Middle: Minute stripes (Dark/Light)
+                        matMiddle = (minuteIndex % 2 === 0) ? 2 : 0;
+                        break;
                 }
 
-                // advance to the next set of indices
-                //groupStart = i * indicesPerSegment;
-                groupStart = (i + 1) * indicesPerSegment;
-
-
+                geometry.addGroup(i * indicesPerSegment, indicesOuterThirds, matOuter);
+                geometry.addGroup(i * indicesPerSegment + indicesOuterThirds, indicesMiddleThird, matMiddle);
             }
 
-            // add last group
-            geometry.addGroup(groupStart, m_NumPoints * indicesPerSegment - groupStart, currentMaterialIndexHour);
             geometry.computeVertexNormals();
 
             const materials = [
                 new THREE.MeshStandardMaterial({
-                    color: 0xD3D3D3, // Light gray
-                    side: THREE.DoubleSide,///THREE.BackSide,
-                    metalness: 0.5,///0.35,
+                    color: 0xD3D3D3, // Material 0: Light gray (Main strip A)
+                    side: THREE.DoubleSide,
+                    metalness: 0.5,
                     roughness: 0.1,
                     transparent: true,
                     opacity: 0.95
-                }), // Material 0: Main strip 
-
-                // Material 1: the hour indicator color.
+                }),
                 new THREE.MeshStandardMaterial({
-                    color: 0x222222,
+                    color: 0x222222, // Material 1: Dark gray (Tick color)
                     side: THREE.DoubleSide,
                     metalness: 0.5,
                     roughness: 0.1
+                }),
+                new THREE.MeshStandardMaterial({
+                    color: 0x222222, // Material 2: Dark gray (Same as ticks, for alternating)
+                    side: THREE.DoubleSide,
+                    metalness: 0.5,
+                    roughness: 0.1,
+                    transparent: true,
+                    opacity: 0.95
                 })
             ];
 
-            const mobiusStrip = new THREE.Mesh(geometry, materials);
-            mobiusGroup.add(mobiusStrip);
+            const mesh = new THREE.Mesh(geometry, materials);
+
+            if (mobiusStripMesh) {
+                mobiusGroup.remove(mobiusStripMesh);
+                mobiusStripMesh.geometry.dispose(); // Clean up old geometry
+                mobiusStripMesh.material.forEach(m => m.dispose()); // Clean up old materials if they were unique
+            }
+            mobiusStripMesh = mesh;
+            mobiusGroup.add(mobiusStripMesh);
+        }
+
+        let currentTickScheme = 'standard';
+
+        function setTickScheme(scheme) {
+            console.log('Setting tick scheme to:', scheme);
+            currentTickScheme = scheme;
+            createMobiusStripMesh(); // Recreate the mesh with the new scheme
         }
 
         let hourSphere, minuteSphere, secondSphere;
         let edgePath = [];
 
-        function createClockHands() {
-            const hourGeometry = new THREE.SphereGeometry(m_HourSphereRadius, 32, 32);
-            const hourMaterial = new THREE.MeshStandardMaterial({ color: 0xADFF2F });
-            hourSphere = new THREE.Mesh(hourGeometry, hourMaterial);
-            mobiusGroup.add(hourSphere);
+        function createHourNumbers() {
+            hourNumbersGroup = new THREE.Group();
+            hourNumbersGroup.visible = false;
+            mobiusGroup.add(hourNumbersGroup);
 
-            const minuteGeometry = new THREE.SphereGeometry(m_MinutesRadius, 32, 32);
-            const minuteMaterial = new THREE.MeshStandardMaterial({ color: 0x00FFFF });
-            minuteSphere = new THREE.Mesh(minuteGeometry, minuteMaterial);
-            mobiusGroup.add(minuteSphere);
+            const loader = new THREE.FontLoader();
+            loader.load('https://unpkg.com/three@0.128.0/examples/fonts/helvetiker_regular.typeface.json', function (font) {
+                const textMaterial = new THREE.MeshStandardMaterial({ color: 0xffffff });
 
-            const secondGeometry = new THREE.SphereGeometry(m_SecondsRadius, 32, 32);
-            const secondMaterial = new THREE.MeshStandardMaterial({ color: 0xFF7F50 });
-            secondSphere = new THREE.Mesh(secondGeometry, secondMaterial);
-            mobiusGroup.add(secondSphere);
+                for (let h = 1; h <= 24; h++) {
+                    const geometry = new THREE.TextGeometry(h.toString(), {
+                        font: font,
+                        size: 0.25,
+                        height: 0.05,
+                        curveSegments: 4, // Lower segments for performance
+                    });
+                    geometry.center();
+
+                    const mesh = new THREE.Mesh(geometry, textMaterial);
+
+                    // Calculate position index
+                    // Midnight (24/0) is at index 180. Direction is backwards (minus).
+                    // Index = 180 - (h * 30). Handle wrapping.
+                    let idx = ((180 - (h * 30)) % 720 + 720) % 720;
+
+                    const p = edgePath[idx];
+                    const centerIdx = idx % 360;
+                    const centerPt = m_RectCenter3DPtArray[centerIdx];
+
+                    // Vector from center to edge point
+                    const dir = new THREE.Vector3().subVectors(p, centerPt).normalize();
+
+                    // Position slightly outside
+                    const pos = new THREE.Vector3().copy(p).add(dir.multiplyScalar(0.4));
+                    mesh.position.copy(pos);
+
+                    // Orient text to face outward from the strip
+                    mesh.lookAt(new THREE.Vector3().addVectors(pos, dir));
+
+                    hourNumbersGroup.add(mesh);
+                }
+            });
         }
+
+
 
         function animate() {
             requestAnimationFrame(animate); // this tells the browser to call animate() for the *next* frame
@@ -595,29 +793,137 @@
             }
             renderer.render(scene, camera);
         }
-
         function setupUIEventListeners() {
+            // --- DESKTOP BUTTONS ---
             const rotationButton = document.getElementById('rotation-button');
-            rotationButton.addEventListener('click', () => {
+            const fastModeButton = document.getElementById('fast-mode-button');
+            const hoursButton = document.getElementById('hours-button');
+
+            // Rotation
+            const toggleRotation = () => {
                 rotationEnabled = !rotationEnabled;
                 mobiusGroup.rotation.y = 0;
-                rotationButton.textContent = rotationEnabled ? 'Stop Rotation' : 'Start Rotation';
+                const text = rotationEnabled ? 'Stop Rotation' : 'Rotate';
+                if (rotationButton) rotationButton.textContent = text;
+                const mobileBtn = document.getElementById('mobile-rotate');
+                if (mobileBtn) mobileBtn.textContent = rotationEnabled ? 'Stop' : 'Rotate';
+
+                // Visual feedback
+                if (rotationButton) rotationButton.classList.toggle('active', rotationEnabled);
+                if (mobileBtn) mobileBtn.classList.toggle('active', rotationEnabled);
+            };
+            if (rotationButton) rotationButton.addEventListener('click', toggleRotation);
+
+            // Fast Mode
+            const toggleFastMode = () => {
+                fastMode = !fastMode;
+                const text = fastMode ? 'Stop Fast' : 'Fast Mode';
+                if (fastModeButton) fastModeButton.textContent = text;
+                const mobileBtn = document.getElementById('mobile-fast');
+                if (mobileBtn) mobileBtn.textContent = fastMode ? 'Stop' : 'Fast';
+
+                if (fastModeButton) fastModeButton.classList.toggle('active', fastMode);
+                if (mobileBtn) mobileBtn.classList.toggle('active', fastMode);
+            };
+            if (fastModeButton) fastModeButton.addEventListener('click', toggleFastMode);
+
+            // Hours
+            const toggleHours = () => {
+                if (hourNumbersGroup) {
+                    hourNumbersGroup.visible = !hourNumbersGroup.visible;
+                    const isActive = hourNumbersGroup.visible;
+                    const text = isActive ? 'Hide Hours' : 'Show Hours';
+                    if (hoursButton) {
+                        hoursButton.textContent = text;
+                        hoursButton.classList.toggle('active', isActive);
+                    }
+                    const mobileBtn = document.getElementById('mobile-hours');
+                    if (mobileBtn) {
+                        mobileBtn.classList.toggle('active', isActive);
+                    }
+                }
+            };
+            if (hoursButton) hoursButton.addEventListener('click', toggleHours);
+
+
+            // --- MOBILE TOOLBAR BUTTONS ---
+            const mobileRotate = document.getElementById('mobile-rotate');
+            if (mobileRotate) mobileRotate.addEventListener('click', toggleRotation);
+
+            const mobileFast = document.getElementById('mobile-fast');
+            if (mobileFast) mobileFast.addEventListener('click', toggleFastMode);
+
+            const mobileHours = document.getElementById('mobile-hours');
+            if (mobileHours) mobileHours.addEventListener('click', toggleHours);
+
+            const mobileExplainer = document.getElementById('mobile-explainer');
+            if (mobileExplainer) mobileExplainer.addEventListener('click', () => {
+                document.getElementById('modal-explainer').style.display = 'block';
             });
+
+
+            // --- SETTINGS PANEL ---
+            const settingsBtn = document.getElementById('settings-btn');
+            const settingsPanel = document.getElementById('settings-panel');
+            const closeSettings = document.getElementById('close-settings');
+
+            if (settingsBtn) {
+                settingsBtn.addEventListener('click', () => {
+                    settingsPanel.classList.add('open');
+                });
+            }
+
+            if (closeSettings) {
+                closeSettings.addEventListener('click', () => {
+                    settingsPanel.classList.remove('open');
+                });
+            }
+
+            // Close settings if clicking outside (optional, but nice)
+            /*
+            document.addEventListener('click', (e) => {
+                if (settingsPanel.classList.contains('open') && 
+                    !settingsPanel.contains(e.target) && 
+                    e.target !== settingsBtn) {
+                    settingsPanel.classList.remove('open');
+                }
+            });
+            */
+
+            // Settings Inputs
+            const shapeRadios = document.getElementsByName('shape');
+            shapeRadios.forEach(radio => {
+                radio.addEventListener('change', (e) => {
+                    setIndicatorShape(e.target.value);
+                });
+            });
+
+            const tickSchemeSelect = document.getElementById('tick-scheme-select');
+            if (tickSchemeSelect) {
+                tickSchemeSelect.addEventListener('change', (e) => {
+                    setTickScheme(e.target.value);
+                });
+            }
+
 
             // --- MODAL LOGIC FOR EXPLAINER ---
             const explainerButton = document.getElementById('explainer-button');
             const modalExplainer = document.getElementById('modal-explainer');
             const modalCloseButton = document.getElementById('modal-close-button');
 
-            // Open the modal
-            explainerButton.addEventListener('click', () => {
-                modalExplainer.style.display = 'block';
-            });
+            // Open the modal (Desktop)
+            if (explainerButton) {
+                explainerButton.addEventListener('click', () => {
+                    modalExplainer.style.display = 'block';
+                });
+            }
 
             // Close the modal
-            modalCloseButton.addEventListener('click', () => {
-                modalExplainer.style.display = 'none';
-            });
+            if (modalCloseButton) {
+                modalCloseButton.addEventListener('click', () => {
+                    modalExplainer.style.display = 'none';
+                });
+            }
 
             // Also close the modal if the user clicks anywhere outside the content
             modalExplainer.addEventListener('click', (event) => {
@@ -626,12 +932,6 @@
                 }
             });
             // --- END MODAL LOGIC ---
-
-            const fastModeButton = document.getElementById('fast-mode-button');
-            fastModeButton.addEventListener('click', () => {
-                fastMode = !fastMode;
-                fastModeButton.textContent = fastMode ? 'Stop Fast Mode' : 'Start Fast Mode';
-            });
         }
 
         function updateClock() {
@@ -662,10 +962,25 @@
             secondSphere.position.y = m_Radius * Math.sin(secAngle);
             secondSphere.position.z = 0;
 
+            if (indicatorShape === 'disc') {
+                // Tangent for circle is (-sin, cos, 0)
+                const tangent = new THREE.Vector3(-Math.sin(secAngle), Math.cos(secAngle), 0).normalize();
+                secondSphere.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), tangent);
+            } else {
+                secondSphere.rotation.set(0, 0, 0);
+            }
+
             const minAngle = Math.PI / 2 - (min60 / 60) * 2 * Math.PI;
             minuteSphere.position.x = m_Radius * Math.cos(minAngle);
             minuteSphere.position.y = m_Radius * Math.sin(minAngle);
             minuteSphere.position.z = 0;
+
+            if (indicatorShape === 'disc') {
+                const tangent = new THREE.Vector3(-Math.sin(minAngle), Math.cos(minAngle), 0).normalize();
+                minuteSphere.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), tangent);
+            } else {
+                minuteSphere.rotation.set(0, 0, 0);
+            }
 
             const hourProgress = hour24 / 24;
             const pathIndexFloat = ((NRECT / 2 - (hourProgress * (2 * NRECT))) % (2 * NRECT) + (2 * NRECT)) % (2 * NRECT);
@@ -679,62 +994,82 @@
 
             if (p1 && p2) {
                 hourSphere.position.lerpVectors(p1, p2, fraction);
+                if (indicatorShape === 'disc') {
+                    const tangent = new THREE.Vector3().subVectors(p2, p1).normalize();
+                    hourSphere.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), tangent);
+                }
+            }
+
+            // Billboard Hour Numbers
+            if (hourNumbersGroup && hourNumbersGroup.visible) {
+                hourNumbersGroup.children.forEach(child => {
+                    child.lookAt(camera.position);
+                });
             }
         }
 
-        function handleWindowResize() {
-            const uiPanel = document.getElementById('ui-container');
-            const uiTopLeft = document.getElementById('ui-top-left');
-            const uiTopRight = document.getElementById('ui-top-right');
-            const uiBottomLeft = document.getElementById('ui-bottom-left'); // Added for completeness/clarity
-            const uiBottomRight = document.getElementById('ui-bottom-right');
-            let availableHeight = window.innerHeight;
+        let indicatorShape = 'sphere';
 
-            // Define panels that need max-width applied on desktop
-            const desktopPanels = [uiTopLeft, uiTopRight, uiBottomRight];
+        function setIndicatorShape(shape) {
+            indicatorShape = shape;
 
-            if (window.innerWidth <= 600) {
-                // Mobile view: UI is shifted to the bottom, occupying space.
-                const uiPanelHeight = uiPanel ? uiPanel.offsetHeight : 0;
-                availableHeight -= uiPanelHeight;
+            // Remove old meshes
+            if (hourSphere) mobiusGroup.remove(hourSphere);
+            if (minuteSphere) mobiusGroup.remove(minuteSphere);
+            if (secondSphere) mobiusGroup.remove(secondSphere);
 
-                // Reset all desktop width constraints to 'none' (or auto sizing)
-                desktopPanels.forEach(panel => {
-                    if (panel) panel.style.maxWidth = 'none';
-                });
+            // Define geometries
+            let hourGeo, minuteGeo, secondGeo;
 
+            if (shape === 'disc') {
+                const h = 0.1; // Thickness of the disc
+                hourGeo = new THREE.CylinderGeometry(m_HourSphereRadius, m_HourSphereRadius, h, 32);
+                minuteGeo = new THREE.CylinderGeometry(m_MinutesRadius, m_MinutesRadius, h, 32);
+                secondGeo = new THREE.CylinderGeometry(m_SecondsRadius, m_SecondsRadius, h, 32);
+
+                // Rotate geometry so cylinder axis (Y) aligns with Z initially? 
+                // No, we will rotate the mesh to align Y with tangent.
             } else {
-                // Desktop view: Apply dynamic width constraints.
-                const windowWidth = window.innerWidth;
-
-                // Use your preferred limits: 20% of window width, max 300px.
-                let newMaxWidth = Math.floor(windowWidth * 0.2);
-                newMaxWidth = Math.min(newMaxWidth, 300);
-                const maxWidthString = `${newMaxWidth}px`;
-
-                // Apply the calculated max width to the specified corner panels
-                desktopPanels.forEach(panel => {
-                    if (panel) panel.style.maxWidth = maxWidthString;
-                });
-
-                // In desktop mode, availableHeight is simply window.innerHeight.
+                hourGeo = new THREE.SphereGeometry(m_HourSphereRadius, 32, 32);
+                minuteGeo = new THREE.SphereGeometry(m_MinutesRadius, 32, 32);
+                secondGeo = new THREE.SphereGeometry(m_SecondsRadius, 32, 32);
             }
 
-            // Update camera aspect ratio (uses availableHeight)
-            camera.aspect = window.innerWidth / availableHeight;
+            // Materials (reuse or recreate)
+            const hourMat = new THREE.MeshStandardMaterial({ color: 0xADFF2F });
+            const minuteMat = new THREE.MeshStandardMaterial({ color: 0x00FFFF });
+            const secondMat = new THREE.MeshStandardMaterial({ color: 0xFF7F50 });
+
+            hourSphere = new THREE.Mesh(hourGeo, hourMat);
+            minuteSphere = new THREE.Mesh(minuteGeo, minuteMat);
+            secondSphere = new THREE.Mesh(secondGeo, secondMat);
+
+            mobiusGroup.add(hourSphere);
+            mobiusGroup.add(minuteSphere);
+            mobiusGroup.add(secondSphere);
+
+            // Trigger update to set positions immediately
+            updateClock();
+        }
+
+        function createClockHands() {
+            setIndicatorShape('sphere');
+        }
+        function handleWindowResize() {
+            const width = window.innerWidth;
+            const height = window.innerHeight;
+
+            camera.aspect = width / height;
             camera.updateProjectionMatrix();
 
-            // Update renderer size
-            renderer.setSize(window.innerWidth, availableHeight);
+            renderer.setSize(width, height);
         }
 
         init();
-        handleWindowResize(); // Initial sizing call is crucial for the model to appear!
+        handleWindowResize();
         setupUIEventListeners();
 
-        // This is the correct listener for responsive design
         window.addEventListener('resize', handleWindowResize);
-        // window.addEventListener('load', handleWindowResize); has been removed as it is now redundant
 
     </script>
 </body>
