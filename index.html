@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mobius Clock</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            color: white;
+            background-color: #808080;
+            /* Medium gray */
+        }
+
+        #container {
+            width: 100vw;
+            height: 100vh;
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: -1;
+        }
+
+        #ui-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            /* Allows clicks to pass through the container */
+        }
+
+        #ui-top-left,
+        #ui-top-right,
+        #ui-bottom-left,
+        #ui-bottom-right {
+            position: absolute;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 10px;
+            pointer-events: auto;
+            /* Enable clicks on the panels */
+            /* Ensure padding/border don't exceed the max-width set by JS */
+            box-sizing: border-box;
+        }
+
+        #ui-top-left {
+            top: 20px;
+            left: 20px;
+        }
+
+        #ui-top-right {
+            top: 20px;
+            right: 20px;
+            text-align: right;
+        }
+
+        #ui-bottom-left {
+            bottom: 20px;
+            left: 20px;
+        }
+
+        #ui-bottom-right {
+            bottom: 20px;
+            right: 20px;
+            text-align: right;
+        }
+
+        #ui-bottom-left,
+        #ui-bottom-right {
+            background: none;
+        }
+
+        button {
+            margin: 5px;
+            padding: 10px;
+            border-radius: 5px;
+            border: none;
+            cursor: pointer;
+        }
+
+        #digital-time {
+            margin-top: 10px;
+            font-size: 24px;
+        }
+
+        /* --- NEW MODAL STYLES --- */
+        #modal-explainer {
+            position: fixed;
+            z-index: 1000;
+            /* High z-index to ensure it sits above everything */
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.8);
+            /* Dark semi-transparent overlay */
+            display: none;
+            /* Controlled by JavaScript */
+            backdrop-filter: blur(5px);
+        }
+
+        #modal-content {
+            background-color: #555;
+            color: white;
+            margin: 15% auto;
+            /* Center vertically and horizontally */
+            padding: 20px;
+            border: 1px solid #888;
+            width: 90%;
+            max-width: 500px;
+            /* Limits the width for desktop */
+            border-radius: 10px;
+            box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
+            text-align: center;
+        }
+
+        #modal-content p {
+            text-align: left;
+            margin-bottom: 20px;
+        }
+
+        #modal-close-button {
+            background-color: #ADFF2F;
+            /* Same color as the hour sphere */
+            color: black;
+            font-weight: bold;
+        }
+
+        /* --- END NEW MODAL STYLES --- */
+
+
+        /* Media Query for Mobile Devices */
+        @media (max-width: 600px) {
+            #ui-container {
+                top: auto;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                width: 100%;
+                height: auto;
+                border-radius: 0;
+                text-align: center;
+                padding: 10px;
+                background: rgba(0, 0, 0, 0.7);
+                pointer-events: auto;
+            }
+
+            #ui-top-left,
+            #ui-top-right,
+            #ui-bottom-left,
+            #ui-bottom-right {
+                position: static;
+                padding: 0;
+                background: none;
+                text-align: center;
+            }
+
+            h1#title {
+                font-size: 24px;
+            }
+
+            button {
+                padding: 8px 12px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div id="container"></div>
+    <div id="ui-container">
+        <div id="ui-top-left">
+            <h1 id="title">Mobius Clock</h1>
+            <button id="explainer-button">Show Explainer</button>
+        </div>
+        <div id="ui-top-right">
+            <div id="digital-time">12:00:00 AM</div>
+            <button id="rotation-button">Start Rotation</button>
+            <div id="fast-mode-container">
+                <button id="fast-mode-button">Start Fast Mode</button>
+            </div>
+        </div>
+        <div id="ui-bottom-left">
+            <p>Version 0.2.0</p>
+        </div>
+        <div id="ui-bottom-right">
+            <p>(C)2025 Charles L. Wallace / coolweird.com</p>
+        </div>
+    </div>
+
+    <div id="modal-explainer" style="display: none;">
+        <div id="modal-content">
+            <h2>Why a Mobius Clock?</h2>
+            <p>Reason: to show 24-hour time on a 12-hour clock face. Since the green hour indicator moves along the edge
+                of the Mobius strip (try Fast Mode for demo), it must make 2 full turns to return to its starting
+                point, thus showing the 24-hour time: Noon is at the bottom of the upper arch, and midnight is at the
+                top.
+                The minute and second indicators move along the center of the strip, so they complete a cycle in only
+                one turn.</p>
+            <button id="modal-close-button">Close</button>
+        </div>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script> // Constants for Mobius strip generation
+        const NRECT = 360;
+        const m_NumPoints = NRECT;
+        const m_Theta = (Math.PI * 2) / NRECT;
+        const m_RotationPerRect = Math.PI / NRECT;
+        const m_Len = 1.9; // Width of the mobius strip
+        const m_Ht = 0.2; // Thickness of the mobius strip
+        const m_Radius = 3.4; // Radius of the centerline of the mobius strip
+        const m_SecondsRadius = 0.35;
+        const m_MinutesRadius = 0.45;
+        const m_HourSphereRadius = 0.55;
+
+        // Arrays to hold the generated points
+        let m_RectCenter3DPtArray = [];
+        let m_FrontInnerCorner3DPtArray = [];
+        let m_BackInnerCorner3DPtArray = [];
+        let m_FrontOuterCorner3DPtArray = [];
+        let m_BackOuterCorner3DPtArray = [];
+
+        // "Thirdway" refers to a point one third of the way
+        //   in from the edge (corner) towards the middle
+        //   of the strip (along the wide side, not the edge),
+        //   along a line connecting front to back, or back to front,
+        //   for inner and outer.
+        // Purpose: for minute/second tick marks that don't extend all the way 
+        //   across the strip; these sit in the inner third, occupying the part of the
+        //   strip where the minute and second indicators move. As compared to the hour indicators
+        //   that go all the way across.
+        // These terms (inner/outer/front/back) apply to the start of the strip at the bottom, while it's laying flat;
+        //  later at the top it will be vertical at the top of the arch, so "inner" and "outer" no longer make sense.
+
+        let m_ThirdwayFromFrontToBackInner3DPtArray = []; // A third towards middle, from front inner to back inner
+        let m_ThirdwayFromBackToFrontInner3DPtArray = []; // A third towards middle, from back inner to front inner
+        let m_ThirdwayFromFrontToBackOuter3DPtArray = []; // A third towards middle, from front outer to back outer
+        let m_ThirdwayFromBackToFrontOuter3DPtArray = []; // A third towards middle, from back outer to front outer
+
+
+        // In this fcn we initialize the point arrays.  Later in createMobiusStripMesh() we will push all the points
+        //  into the "vertices" array.  We use indices into this array to indirectly refer to the points when
+        //  we create the triangles of the model by adding them to the indices array.
+        function generateMobius3dPoints() {
+            const s = Math.sqrt(m_Len * m_Len + m_Ht * m_Ht) / 2;
+            const beta = Math.asin(m_Ht / (2 * s));
+
+            for (let ii = 0; ii < m_NumPoints; ii++) {
+                const phi = (-Math.PI / 2) + ii * m_Theta;
+                const alpha = m_RotationPerRect * ii;
+
+                const x = m_Radius * Math.cos(phi);
+                const y = m_Radius * Math.sin(phi);
+                const z = 0;
+                m_RectCenter3DPtArray[ii] = new THREE.Vector3(x, y, z);
+
+                const z1 = s * Math.cos(beta - alpha);
+                const r1 = m_Radius - (s * Math.sin(beta - alpha));
+                const x1 = r1 * Math.cos(phi);
+                const y1 = r1 * Math.sin(phi);
+                m_FrontInnerCorner3DPtArray[ii] = new THREE.Vector3(x1, y1, z1);
+
+                const z2 = -s * Math.cos(beta + alpha);
+                const r2 = m_Radius - (s * Math.sin(beta + alpha));
+                const x2 = r2 * Math.cos(phi);
+                const y2 = r2 * Math.sin(phi);
+                m_BackInnerCorner3DPtArray[ii] = new THREE.Vector3(x2, y2, z2);
+
+                const z3 = s * Math.cos(beta + alpha);
+                const r3 = m_Radius + (s * Math.sin(beta + alpha));
+                const x3 = r3 * Math.cos(phi);
+                const y3 = r3 * Math.sin(phi);
+                m_FrontOuterCorner3DPtArray[ii] = new THREE.Vector3(x3, y3, z3);
+
+                const z4 = -s * Math.cos(beta - alpha);
+                const r4 = m_Radius + (s * Math.sin(beta - alpha));
+                const x4 = r4 * Math.cos(phi);
+                const y4 = r4 * Math.sin(phi);
+                m_BackOuterCorner3DPtArray[ii] = new THREE.Vector3(x4, y4, z4);
+
+                // init the thirdway arrays
+                // m_ThirdwayFromFrontToBackInner3DPtArray = fi3 (frontInnerCorner, backInnerCorner)
+                const x5 = x1 - ((x1 - x2) / 3);
+                const y5 = y1 - ((y1 - y2) / 3);
+                const z5 = z1 - ((z1 - z2) / 3);
+                m_ThirdwayFromFrontToBackInner3DPtArray[ii] = new THREE.Vector3(x5, y5, z5);
+
+                // m_ThirdwayFromBackToFrontInner3DPtArray = bi3 (backInnerCorner, frontInnerCorner)
+                const x6 = x2 - ((x2 - x1) / 3);
+                const y6 = y2 - ((y2 - y1) / 3);
+                const z6 = z2 - ((z2 - z1) / 3);
+                m_ThirdwayFromBackToFrontInner3DPtArray[ii] = new THREE.Vector3(x6, y6, z6);
+
+                // m_ThirdwayFromFrontToBackOuter3DPtArray = fo3 (frontOuterCorner, backOuterCorner)
+                const x7 = x3 - ((x3 - x4) / 3);
+                const y7 = y3 - ((y3 - y4) / 3);
+                const z7 = z3 - ((z3 - z4) / 3);
+                m_ThirdwayFromFrontToBackOuter3DPtArray[ii] = new THREE.Vector3(x7, y7, z7);
+
+                // m_ThirdwayFromBackToFrontOuter3DPtArray = bo3 (backOuterCorner, frontOuterCorner)
+                const x8 = x4 - ((x4 - x3) / 3);
+                const y8 = y4 - ((y4 - y3) / 3);
+                const z8 = z4 - ((z4 - z3) / 3);
+                m_ThirdwayFromBackToFrontOuter3DPtArray[ii] = new THREE.Vector3(x8, y8, z8);
+            }
+        }
+
+        generateMobius3dPoints();
+
+        let scene, camera, renderer, mobiusGroup;
+        let rotationEnabled = false;
+        let fastMode = false;
+
+
+        function init() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x505050); // Medium gray
+
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.z = 7;
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+
+
+            document.getElementById('container').appendChild(renderer.domElement);
+
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+            scene.add(ambientLight);
+
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
+            directionalLight.position.set(0, 1, 1);
+            scene.add(directionalLight);
+
+            const topRightLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            topRightLight.position.set(1, 1, 2);
+            scene.add(topRightLight);
+
+            mobiusGroup = new THREE.Group();
+            scene.add(mobiusGroup);
+
+            createMobiusStripMesh();
+            createClockHands();
+
+            edgePath = m_FrontInnerCorner3DPtArray.concat(m_BackOuterCorner3DPtArray);
+
+            animate();
+        }
+
+
+        function createMobiusStripMesh() {
+            const geometry = new THREE.BufferGeometry();
+            const vertices = [];
+            const indices = [];
+
+            // Load all of the points into the vertices array.  We will refer to them via their indexes (indices) into this 
+            //   vertices array when defining the triangles that will go into the confusingly-named indices array below.
+            //   Seems like the indices array should have been called the triangles array, but oh well.
+            for (let i = 0; i < m_NumPoints; i++) {
+                vertices.push(m_FrontInnerCorner3DPtArray[i].x, m_FrontInnerCorner3DPtArray[i].y, m_FrontInnerCorner3DPtArray[i].z);
+                vertices.push(m_BackInnerCorner3DPtArray[i].x, m_BackInnerCorner3DPtArray[i].y, m_BackInnerCorner3DPtArray[i].z);
+                vertices.push(m_FrontOuterCorner3DPtArray[i].x, m_FrontOuterCorner3DPtArray[i].y, m_FrontOuterCorner3DPtArray[i].z);
+                vertices.push(m_BackOuterCorner3DPtArray[i].x, m_BackOuterCorner3DPtArray[i].y, m_BackOuterCorner3DPtArray[i].z);
+
+                //  TODO: push vertices for the 4 thirdway arrays. 
+                vertices.push(m_ThirdwayFromFrontToBackInner3DPtArray[i].x,
+                    m_ThirdwayFromFrontToBackInner3DPtArray[i].y,
+                    m_ThirdwayFromFrontToBackInner3DPtArray[i].z);
+                vertices.push(m_ThirdwayFromBackToFrontInner3DPtArray[i].x,
+                    m_ThirdwayFromBackToFrontInner3DPtArray[i].y,
+                    m_ThirdwayFromBackToFrontInner3DPtArray[i].z);
+                vertices.push(m_ThirdwayFromFrontToBackOuter3DPtArray[i].x,
+                    m_ThirdwayFromFrontToBackOuter3DPtArray[i].y,
+                    m_ThirdwayFromFrontToBackOuter3DPtArray[i].z);
+                vertices.push(m_ThirdwayFromBackToFrontOuter3DPtArray[i].x,
+                    m_ThirdwayFromBackToFrontOuter3DPtArray[i].y,
+                    m_ThirdwayFromBackToFrontOuter3DPtArray[i].z);
+
+                //
+            }
+
+            for (let i = 0; i < m_NumPoints; i++) {
+                let r1 = i;
+                let r2 = (i + 1) % m_NumPoints; // use mod op to handle wrap to 0 at end
+
+                //let fi1 = r1 * 4;
+                let fi1 = r1 * 8;
+                let bi1 = fi1 + 1;
+                let fo1 = fi1 + 2;
+                let bo1 = fi1 + 3;
+
+                let fi3 = fi1 + 4;
+                let bi3 = fi1 + 5;
+                let fo3 = fi1 + 6;
+                let bo3 = fi1 + 7;
+
+                //let fi2 = r2 * 4;
+                let fi2 = r2 * 8;
+                let bi2 = fi2 + 1;
+                let fo2 = fi2 + 2;
+                let bo2 = fi2 + 3;
+
+                let fi4 = fi2 + 4;
+                let bi4 = fi2 + 5;
+                let fo4 = fi2 + 6;
+                let bo4 = fi2 + 7;
+
+
+                // must reverse the order for last slice due to 180 rotation
+                if (i === m_NumPoints - 1) {
+                    bo2 = 0;
+                    fo2 = bo2 + 1;
+                    bi2 = bo2 + 2;
+                    fi2 = bo2 + 3;
+
+                    bo4 = 4;
+                    fo4 = 5;
+                    bi4 = 6;
+                    fi4 = 7;
+                }
+
+                // The following must push the points using the right-hand rule.
+                // These share the same material.
+
+                // These are the full width faces. COMMENTED OUT
+                //indices.push(fi2, bi1, fi1); // inner face
+                //indices.push(fi2, bi2, bi1);
+                //indices.push(fo1, bo1, fo2); // outer face
+                //indices.push(bo2, fo2, bo1);	
+
+                // This represents the front third of the strip.
+                indices.push(fi2, fi3, fi1); // inner face
+                indices.push(fi2, fi4, fi3);
+                indices.push(fo1, fo3, fo2); // outer face
+                indices.push(fo4, fo2, fo3);
+                indices.push(fo1, fi2, fi1); // front edge face
+                indices.push(fo2, fi2, fo1);
+
+                // This represents the back third of the strip.
+
+                indices.push(bi4, bi1, bi3); // inner face
+                indices.push(bi4, bi2, bi1);
+                indices.push(bo4, bo3, bo1); // outer face
+                indices.push(bo4, bo1, bo2);
+                indices.push(bi2, bo1, bi1); // back edge face
+                indices.push(bi2, bo2, bo1);
+
+                // These represent the inside third, front and back. These will be
+                //  in a separate group bc they may use a different material.
+                indices.push(fi4, bi3, fi3); // tick inner face (thirdway)
+                indices.push(fi4, bi4, bi3);
+                indices.push(fo4, fo3, bo3); // tick outer face (thirdway)
+                indices.push(fo4, bo3, bo4);
+
+
+                /* TODO - grab indexes of the thirdway points as needed to define tick marks and push. 
+                Need 2 triangles for inner side to form rectangle, using 2 triangles (fi4, bi3, fi3) + (fi4,bi4,bi3)
+                similar for outer side.
+                This is only for the tick itself; also need the non-tick part of the face.  
+                Q: do I need to define these 3 zones for each of the skinny faces that compose the inner/outer sides?
+                   Unsure when I'd need to apply logic to decide if it's time for a tick or not.
+                   Looks like triangles don't get added until we call addGroup below.
+                LEFTOFF
+                */
+
+            }
+
+            geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+            geometry.setIndex(indices);
+
+            // For simple segment without thirdway points, this is the number of 3D points, equiv 8 triangles.
+            const indicesPerSegment = 48; //24; 
+            const indicesOuterThirds = 36;
+            const indicesMiddleThird = 12;
+
+            let currentMaterialIndexHour = -1;
+            let groupStart = 0;
+
+            /* NOTES - ok, previously all groups were the same number of triangles and all were the same material.
+            But with the new min/sec ticks feature, we now have some segments that contain two materials, thus
+            they can't be in the same group.  So, if we want all segments to have the same structure, we'll need
+            to have three groups for each segment (tho maybe we can combine the 2 outer groups, they'll have the 
+            same material).
+            PLAN: when adding indices, add the outer groups first - they'll share same material - for 12 triangles, 36 pts. 
+            Then add central, 4 triangles, 12 points.  Combined total is 16 triangles, 48 pts.
+        	
+            */
+
+            // Add a series of groups to the geometry. For each specify indexes into the indices array and material.
+            for (let i = 0; i < m_NumPoints; i++) {
+
+                const materialIndexHour = (i % 30 === 0) ? 1 : 0;
+                const materialIndexMinute = (i % 6 === 0) ? 1 : 0;
+
+                // EXPERIMENT in alternating colors
+                //let ii = Math.floor(i/30);
+                //const materialIndexHour = (ii % 2 === 0) ? 1 : 0;
+
+                /*
+                if (i === 0) {
+                    currentMaterialIndexHour = materialIndexHour;
+                }
+            	
+                if (materialIndexHour !== currentMaterialIndexHour) {
+                    //geometry.addGroup(groupStart, i * indicesPerSegment - groupStart, currentMaterialIndexHour);
+                	
+                    geometry.addGroup(groupStart, indicesOuterThirds, 0);
+                    geometry.addGroup(groupStart+indicesOuterThirds, indicesMiddleThird, currentMaterialIndexHour);
+                	
+                	
+                    currentMaterialIndexHour = materialIndexHour;
+                    groupStart = i * indicesPerSegment;
+                }
+                */
+                if (materialIndexHour == 1) {
+                    // set both groups to dark color
+                    geometry.addGroup(groupStart, indicesOuterThirds, 1);
+                    geometry.addGroup(groupStart + indicesOuterThirds, indicesMiddleThird, 1);
+                }
+                else if (materialIndexMinute == 1) {
+                    // set outer to light color, inner to dark
+                    geometry.addGroup(groupStart, indicesOuterThirds, 0);
+                    geometry.addGroup(groupStart + indicesOuterThirds, indicesMiddleThird, 1);
+                }
+                else {
+                    // set both inner and outer to light color
+                    geometry.addGroup(groupStart, indicesOuterThirds, 0);
+                    geometry.addGroup(groupStart + indicesOuterThirds, indicesMiddleThird, 0);
+                }
+
+                // advance to the next set of indices
+                //groupStart = i * indicesPerSegment;
+                groupStart = (i + 1) * indicesPerSegment;
+
+
+            }
+
+            // add last group
+            geometry.addGroup(groupStart, m_NumPoints * indicesPerSegment - groupStart, currentMaterialIndexHour);
+            geometry.computeVertexNormals();
+
+            const materials = [
+                new THREE.MeshStandardMaterial({
+                    color: 0xD3D3D3, // Light gray
+                    side: THREE.DoubleSide,///THREE.BackSide,
+                    metalness: 0.5,///0.35,
+                    roughness: 0.1,
+                    transparent: true,
+                    opacity: 0.95
+                }), // Material 0: Main strip 
+
+                // Material 1: the hour indicator color.
+                new THREE.MeshStandardMaterial({
+                    color: 0x222222,
+                    side: THREE.DoubleSide,
+                    metalness: 0.5,
+                    roughness: 0.1
+                })
+            ];
+
+            const mobiusStrip = new THREE.Mesh(geometry, materials);
+            mobiusGroup.add(mobiusStrip);
+        }
+
+        let hourSphere, minuteSphere, secondSphere;
+        let edgePath = [];
+
+        function createClockHands() {
+            const hourGeometry = new THREE.SphereGeometry(m_HourSphereRadius, 32, 32);
+            const hourMaterial = new THREE.MeshStandardMaterial({ color: 0xADFF2F });
+            hourSphere = new THREE.Mesh(hourGeometry, hourMaterial);
+            mobiusGroup.add(hourSphere);
+
+            const minuteGeometry = new THREE.SphereGeometry(m_MinutesRadius, 32, 32);
+            const minuteMaterial = new THREE.MeshStandardMaterial({ color: 0x00FFFF });
+            minuteSphere = new THREE.Mesh(minuteGeometry, minuteMaterial);
+            mobiusGroup.add(minuteSphere);
+
+            const secondGeometry = new THREE.SphereGeometry(m_SecondsRadius, 32, 32);
+            const secondMaterial = new THREE.MeshStandardMaterial({ color: 0xFF7F50 });
+            secondSphere = new THREE.Mesh(secondGeometry, secondMaterial);
+            mobiusGroup.add(secondSphere);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate); // this tells the browser to call animate() for the *next* frame
+            updateClock();
+            if (rotationEnabled) {
+                mobiusGroup.rotation.y += 0.005;
+            }
+            renderer.render(scene, camera);
+        }
+
+        function setupUIEventListeners() {
+            const rotationButton = document.getElementById('rotation-button');
+            rotationButton.addEventListener('click', () => {
+                rotationEnabled = !rotationEnabled;
+                mobiusGroup.rotation.y = 0;
+                rotationButton.textContent = rotationEnabled ? 'Stop Rotation' : 'Start Rotation';
+            });
+
+            // --- MODAL LOGIC FOR EXPLAINER ---
+            const explainerButton = document.getElementById('explainer-button');
+            const modalExplainer = document.getElementById('modal-explainer');
+            const modalCloseButton = document.getElementById('modal-close-button');
+
+            // Open the modal
+            explainerButton.addEventListener('click', () => {
+                modalExplainer.style.display = 'block';
+            });
+
+            // Close the modal
+            modalCloseButton.addEventListener('click', () => {
+                modalExplainer.style.display = 'none';
+            });
+
+            // Also close the modal if the user clicks anywhere outside the content
+            modalExplainer.addEventListener('click', (event) => {
+                if (event.target === modalExplainer) {
+                    modalExplainer.style.display = 'none';
+                }
+            });
+            // --- END MODAL LOGIC ---
+
+            const fastModeButton = document.getElementById('fast-mode-button');
+            fastModeButton.addEventListener('click', () => {
+                fastMode = !fastMode;
+                fastModeButton.textContent = fastMode ? 'Stop Fast Mode' : 'Start Fast Mode';
+            });
+        }
+
+        function updateClock() {
+            const now = new Date();
+            let iHour24 = now.getHours();
+            let iMin60 = now.getMinutes();
+            let iSec60 = now.getSeconds();
+            let millisec = now.getMilliseconds();
+
+            const ampm = iHour24 >= 12 ? 'PM' : 'AM';
+            let iHour12 = iHour24 % 12;
+            iHour12 = iHour12 ? iHour12 : 12;
+            const digitalTime = `${iHour12}:${iMin60.toString().padStart(2, '0')}:${iSec60.toString().padStart(2, '0')} ${ampm}`;
+            document.getElementById('digital-time').textContent = digitalTime;
+
+            let sec60 = iSec60 + millisec / 1000;
+            let min60 = iMin60 + sec60 / 60;
+            let hour24 = iHour24 + min60 / 60;
+
+            if (fastMode) {
+                hour24 = (24.0 / 60.0) * sec60;
+                let hourFrac = hour24 - Math.floor(hour24);
+                min60 = hourFrac * 60;
+            }
+
+            const secAngle = Math.PI / 2 - (sec60 / 60) * 2 * Math.PI;
+            secondSphere.position.x = m_Radius * Math.cos(secAngle);
+            secondSphere.position.y = m_Radius * Math.sin(secAngle);
+            secondSphere.position.z = 0;
+
+            const minAngle = Math.PI / 2 - (min60 / 60) * 2 * Math.PI;
+            minuteSphere.position.x = m_Radius * Math.cos(minAngle);
+            minuteSphere.position.y = m_Radius * Math.sin(minAngle);
+            minuteSphere.position.z = 0;
+
+            const hourProgress = hour24 / 24;
+            const pathIndexFloat = ((NRECT / 2 - (hourProgress * (2 * NRECT))) % (2 * NRECT) + (2 * NRECT)) % (2 * NRECT);
+
+            const index1 = Math.floor(pathIndexFloat);
+            const index2 = (index1 + 1) % (2 * NRECT);
+            const fraction = pathIndexFloat - index1;
+
+            const p1 = edgePath[index1];
+            const p2 = edgePath[index2];
+
+            if (p1 && p2) {
+                hourSphere.position.lerpVectors(p1, p2, fraction);
+            }
+        }
+
+        function handleWindowResize() {
+            const uiPanel = document.getElementById('ui-container');
+            const uiTopLeft = document.getElementById('ui-top-left');
+            const uiTopRight = document.getElementById('ui-top-right');
+            const uiBottomLeft = document.getElementById('ui-bottom-left'); // Added for completeness/clarity
+            const uiBottomRight = document.getElementById('ui-bottom-right');
+            let availableHeight = window.innerHeight;
+
+            // Define panels that need max-width applied on desktop
+            const desktopPanels = [uiTopLeft, uiTopRight, uiBottomRight];
+
+            if (window.innerWidth <= 600) {
+                // Mobile view: UI is shifted to the bottom, occupying space.
+                const uiPanelHeight = uiPanel ? uiPanel.offsetHeight : 0;
+                availableHeight -= uiPanelHeight;
+
+                // Reset all desktop width constraints to 'none' (or auto sizing)
+                desktopPanels.forEach(panel => {
+                    if (panel) panel.style.maxWidth = 'none';
+                });
+
+            } else {
+                // Desktop view: Apply dynamic width constraints.
+                const windowWidth = window.innerWidth;
+
+                // Use your preferred limits: 20% of window width, max 300px.
+                let newMaxWidth = Math.floor(windowWidth * 0.2);
+                newMaxWidth = Math.min(newMaxWidth, 300);
+                const maxWidthString = `${newMaxWidth}px`;
+
+                // Apply the calculated max width to the specified corner panels
+                desktopPanels.forEach(panel => {
+                    if (panel) panel.style.maxWidth = maxWidthString;
+                });
+
+                // In desktop mode, availableHeight is simply window.innerHeight.
+            }
+
+            // Update camera aspect ratio (uses availableHeight)
+            camera.aspect = window.innerWidth / availableHeight;
+            camera.updateProjectionMatrix();
+
+            // Update renderer size
+            renderer.setSize(window.innerWidth, availableHeight);
+        }
+
+        init();
+        handleWindowResize(); // Initial sizing call is crucial for the model to appear!
+        setupUIEventListeners();
+
+        // This is the correct listener for responsive design
+        window.addEventListener('resize', handleWindowResize);
+        // window.addEventListener('load', handleWindowResize); has been removed as it is now redundant
+
+    </script>
+</body>
+
+</html>
