@@ -62,7 +62,8 @@
         h1#title {
             margin: 0;
             font-size: 24px;
-            font-weight: 300;
+            font-weight: bold;
+            /* Bolder title */
         }
 
         #version {
@@ -260,35 +261,51 @@
             cursor: pointer;
         }
 
-        /* Responsive Adjustments */
         @media (max-width: 600px) {
             #controls-desktop {
                 display: none;
-                /* Hide desktop buttons */
             }
 
             #mobile-toolbar {
                 display: flex;
-                /* Show mobile toolbar */
             }
 
             #settings-btn {
-                top: 15px;
-                right: 15px;
+                top: 10px;
+                right: 10px;
+                padding: 6px 10px;
+                font-size: 18px;
+            }
+
+            #digital-time {
+                top: 14px;
+                right: 75px;
+                /* Moved further left to avoid overlap */
+                font-size: 1em;
             }
 
             #top-bar {
-                padding-right: 50px;
-                /* Make room for settings button */
+                padding-right: 0;
+                padding-top: 0;
+                /* Remove padding */
+                top: 10px;
+                /* Align vertically with buttons */
+            }
+
+            #title {
+                font-size: 1.2em;
+            }
+
+            /* Smaller title */
+
+            #version {
+                font-size: 0.7em;
             }
 
             #bottom-bar {
                 display: none;
                 /* Hide bottom info bar, maybe move copyright to settings? */
             }
-
-            /* Adjust canvas height to not be covered by toolbar? 
-               Actually, toolbar is overlay, so it's fine. */
         }
     </style>
 </head>
@@ -604,11 +621,7 @@
                 // The following must push the points using the right-hand rule.
                 // These share the same material.
 
-                // These are the full width faces. COMMENTED OUT
-                //indices.push(fi2, bi1, fi1); // inner face
-                //indices.push(fi2, bi2, bi1);
-                //indices.push(fo1, bo1, fo2); // outer face
-                //indices.push(bo2, fo2, bo1);	
+
 
                 // This represents the front third of the strip.
                 indices.push(fi2, fi3, fi1); // inner face
@@ -635,15 +648,7 @@
                 indices.push(fo4, bo3, bo4);
 
 
-                /* TODO - grab indexes of the thirdway points as needed to define tick marks and push. 
-                Need 2 triangles for inner side to form rectangle, using 2 triangles (fi4, bi3, fi3) + (fi4,bi4,bi3)
-                similar for outer side.
-                This is only for the tick itself; also need the non-tick part of the face.  
-                Q: do I need to define these 3 zones for each of the skinny faces that compose the inner/outer sides?
-                   Unsure when I'd need to apply logic to decide if it's time for a tick or not.
-                   Looks like triangles don't get added until we call addGroup below.
-                LEFTOFF
-                */
+
             }
 
             geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
@@ -731,7 +736,6 @@
         let currentTickScheme = 'standard';
 
         function setTickScheme(scheme) {
-            console.log('Setting tick scheme to:', scheme);
             currentTickScheme = scheme;
             createMobiusStripMesh(); // Recreate the mesh with the new scheme
         }
@@ -749,36 +753,107 @@
                 const textMaterial = new THREE.MeshStandardMaterial({ color: 0xffffff });
 
                 for (let h = 1; h <= 24; h++) {
-                    const geometry = new THREE.TextGeometry(h.toString(), {
+                    let hourNumStr = h.toString();
+                    let suffixStr = 'AM';
+
+                    if (h === 24) { hourNumStr = '12'; suffixStr = 'AM'; }
+                    else if (h === 12) { hourNumStr = '12'; suffixStr = 'PM'; }
+                    else if (h > 12) { hourNumStr = (h - 12).toString(); suffixStr = 'PM'; }
+                    else { hourNumStr = h.toString(); suffixStr = 'AM'; }
+
+                    const hourGroup = new THREE.Group();
+
+                    // 1. Number Mesh
+                    const numGeo = new THREE.TextGeometry(hourNumStr, {
                         font: font,
                         size: 0.25,
-                        height: 0.05,
-                        curveSegments: 4, // Lower segments for performance
+                        height: 0.02, // Thinner extrusion for better look? Or keep 0.05
+                        curveSegments: 4,
+                        bevelEnabled: false
                     });
-                    geometry.center();
+                    numGeo.computeBoundingBox();
+                    const numWidth = numGeo.boundingBox.max.x - numGeo.boundingBox.min.x;
+                    const numMesh = new THREE.Mesh(numGeo, textMaterial);
+                    hourGroup.add(numMesh);
 
-                    const mesh = new THREE.Mesh(geometry, textMaterial);
+                    // 2. Suffix Meshes (Stacked)
+                    const topChar = suffixStr[0]; // 'A' or 'P'
+                    const botChar = suffixStr[1]; // 'M'
+                    const suffixSize = 0.12;
+                    const marginX = 0.05; // Increased margin
 
-                    // Calculate position index
+                    // Top Suffix
+                    const topGeo = new THREE.TextGeometry(topChar, {
+                        font: font,
+                        size: suffixSize,
+                        height: 0.02,
+                        curveSegments: 4,
+                        bevelEnabled: false
+                    });
+                    const topMesh = new THREE.Mesh(topGeo, textMaterial);
+                    // Use boundingBox.max.x to position relative to the actual right edge of the number
+                    topMesh.position.set(numGeo.boundingBox.max.x + marginX, 0.13, 0);
+                    hourGroup.add(topMesh);
+
+                    // Bottom Suffix
+                    const botGeo = new THREE.TextGeometry(botChar, {
+                        font: font,
+                        size: suffixSize,
+                        height: 0.02,
+                        curveSegments: 4,
+                        bevelEnabled: false
+                    });
+                    const botMesh = new THREE.Mesh(botGeo, textMaterial);
+                    botMesh.position.set(numGeo.boundingBox.max.x + marginX, 0.0, 0);
+                    hourGroup.add(botMesh);
+
+                    // 3. Center the content
+                    // Approximate total width
+                    topGeo.computeBoundingBox();
+                    botGeo.computeBoundingBox();
+                    const topWidth = topGeo.boundingBox.max.x - topGeo.boundingBox.min.x;
+                    const botWidth = botGeo.boundingBox.max.x - botGeo.boundingBox.min.x;
+                    const suffixWidth = Math.max(topWidth, botWidth);
+
+                    // Total width is from min.x of number to max.x of suffix
+                    // We assume number starts around 0, but let's be precise
+                    const totalWidth = (numGeo.boundingBox.max.x + marginX + suffixWidth) - numGeo.boundingBox.min.x;
+                    const totalHeight = 0.25;
+
+                    // Shift all children to center
+                    // We want to shift by (min.x + totalWidth/2) ?
+                    // Or just center the bounding box of the whole group.
+                    // Let's shift by half the total width relative to the start.
+                    const shiftX = numGeo.boundingBox.min.x + totalWidth / 2;
+
+                    hourGroup.children.forEach(child => {
+                        child.position.x -= shiftX;
+                        child.position.y -= totalHeight / 2;
+                    });
+
+                    // 4. Position the Group on the Strip
+                    // Restore original positioning logic:
                     // Midnight (24/0) is at index 180. Direction is backwards (minus).
                     // Index = 180 - (h * 30). Handle wrapping.
                     let idx = ((180 - (h * 30)) % 720 + 720) % 720;
 
                     const p = edgePath[idx];
-                    const centerIdx = idx % 360;
-                    const centerPt = m_RectCenter3DPtArray[centerIdx];
+
+                    // Calculate direction for offset (outward)
+                    const centerIndex = idx % m_NumPoints;
+                    const centerPt = m_RectCenter3DPtArray[centerIndex];
 
                     // Vector from center to edge point
                     const dir = new THREE.Vector3().subVectors(p, centerPt).normalize();
 
                     // Position slightly outside
                     const pos = new THREE.Vector3().copy(p).add(dir.multiplyScalar(0.4));
-                    mesh.position.copy(pos);
+                    hourGroup.position.copy(pos);
 
-                    // Orient text to face outward from the strip
-                    mesh.lookAt(new THREE.Vector3().addVectors(pos, dir));
+                    // Orient text to face outward from the strip (Initial orientation)
+                    hourGroup.lookAt(new THREE.Vector3().addVectors(pos, dir));
 
-                    hourNumbersGroup.add(mesh);
+                    hourNumbersGroup.add(hourGroup);
                 }
             });
         }
@@ -880,15 +955,7 @@
             }
 
             // Close settings if clicking outside (optional, but nice)
-            /*
-            document.addEventListener('click', (e) => {
-                if (settingsPanel.classList.contains('open') && 
-                    !settingsPanel.contains(e.target) && 
-                    e.target !== settingsBtn) {
-                    settingsPanel.classList.remove('open');
-                }
-            });
-            */
+
 
             // Settings Inputs
             const shapeRadios = document.getElementsByName('shape');
@@ -1063,6 +1130,13 @@
             camera.updateProjectionMatrix();
 
             renderer.setSize(width, height);
+
+            // Adjust camera distance for mobile to fit the model
+            if (width < 600) {
+                camera.position.z = 12.5; // Zoom out for mobile (adjusted larger)
+            } else {
+                camera.position.z = 7.2; // Default for desktop (adjusted larger)
+            }
         }
 
         init();
