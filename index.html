@@ -1,5 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
+<!-- "Mobius Clock" web app, by Charles Wallace of Carlsbad, CA, USA, (c) 2025
+ This web app displays a 3D Mobius strip adapted to work as a clock face.
+Why a mobius strip? Because it allows a 24-hour clock to be displayed on a 12-hour clock face. This
+is possible due to the nature of a mobius strip.  If you follow one edge of a mobius strip,
+it will take 2 full turns to return to the starting point, thus allowing a 24-hour clock to be displayed on a 12-hour clock face.
+ -->
 
 <head>
     <meta charset="UTF-8">
@@ -304,7 +310,7 @@
 
             #bottom-bar {
                 display: none;
-                /* Hide bottom info bar, maybe move copyright to settings? */
+                /* Hide bottom info bar*/
             }
         }
     </style>
@@ -321,9 +327,7 @@
                 <h1 id="title">Mobius Clock</h1>
                 <div id="version">Version 0.3.0</div>
             </div>
-            <!-- Digital Time (Desktop) - on mobile it might be better centered or hidden? 
-                 Proposal said "Digital Time (Large, centered)" for mobile. 
-                 For now keeping it top-right for desktop. -->
+            <!-- Digital Time (Desktop) top-right for desktop. -->
             <div class="ui-element" id="digital-time-container">
                 <div id="digital-time">12:00:00 AM</div>
             </div>
@@ -369,7 +373,7 @@
                     <option value="standard">Standard (Hour + Min/Sec)</option>
                     <option value="minimal">Minimal (Hour Only)</option>
                     <option value="alternating">Alternating Colors</option>
-                    <option value="alternating_ticks">Alternating + Ticks</option>
+                    <option value="alternating_ticks">Alternating hours and min</option>
                 </select>
             </div>
         </div>
@@ -387,24 +391,77 @@
     <div id="modal-explainer" style="display: none;">
         <div id="modal-content">
             <h2>Why a Mobius Clock?</h2>
-            <p>Reason: to show 24-hour time on a 12-hour clock face. Since the green hour indicator moves along the edge
+            <p>Reason: to show 24-hour time on a 12-hour clock face. Since the hour indicator moves along the edge
                 of the Mobius strip (try Fast Mode for demo), it must make 2 full turns to return to its starting
                 point, thus showing the 24-hour time: Noon is at the bottom of the upper arch, and midnight is at the
-                top.
+                top. Turn on the hour labels to see the hours.
                 The minute and second indicators move along the center of the strip, so they complete a cycle in only
                 one turn.</p>
             <button id="modal-close-button">Close</button>
         </div>
     </div>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script> // Constants for Mobius strip generation
+    <script>
+        /*  THEORY of how the Mobius strip is constructed:
+        We start with a circle of radius m_Radius. This is not actually drawn on the screen, it's simply a theoretical
+        circle that forms the centerline of the Mobius strip. Picture it positioned vertically.
+          The next theoretical step: picture a series of NRECT long slender rectangles
+        placed on the circle such that it passes perpendicularly through the center of each rectangle.  The first one 
+        is at the bottom of the circle, positioned so the long axis is horizontal.  We can imagine initially all of them in this
+        orientation; next we will rotate each one around it's center by an angle of m_Theta = 2*PI/NRECT more than the previous one.
+        This angle is chosen so that the last rectangle will be rotated 180 degrees from the first one, creating the Mobius strip.
+    
+        We don't draw these; instead we create a set of points (vertices) on each rectangle.  For now, consider the four corners.
+        In order to define the shape of the mobius strip, we need to connect the points of a given rectangle to the points of the
+        adjacent rectangles using a series of triangles.  Keep in mind that the edges of those adjacent rectangles are NOT 
+        parallel the the edges of the given rectangle due to the rotation of the rectangles.  That's why we need to use 
+        triangles to connect the points.  
+    
+        For our strip, we define 4 points on each long edge of each rectangle, front and back. The outer points we already
+        described above; these are the corners of the rectangle.  The inner points are one third of the way in from the edge
+        (corner) towards the middle (along the wide side, not the edge).  We call these "thirdway" points.  The thirdway
+        points are used to define the minute and second tick marks that occupy the middle of the strip.  
+        The hour tick marks are the full width of the strip.
+        
+        First we calculate the x/y/z coordinates for each of the 8 points per rectangle and store them in arrays.
+        Then we use those arrays to create a set of vertices (3D points) that are "pushed" into the master vertices buffer.  
+        Next, we create the "indices" buffer that defines the triangles that make up the strip. The name "indices" is a bit 
+        confusing; it contains our triangles as a series of sets of three indices that point into the vertices buffer. Note
+        that the order of the indices determines which way they point (front vs back), using the right hand rule.
+
+        ATTN: there's a special case for the last segment, where the last rectangle is rotated 180 degrees from the first one.
+        This is because the last rectangle is connected to the first one, and the first one is rotated 180 degrees from the last one.
+        This means that the last rectangle is connected to the first one in the opposite direction, and the indices need to be reversed.
+    
+        So now we have the triangles we need, but we still need to "add" them to our "geometry" object in form of a 
+        series of "groups".  Each group shares the same "material" which determines its color, transparency, reflectivity, etc.
+        
+        Going back to our original theoretical rectangles, consider each pair of rectangles that are side by side.
+        We need to connect the points of one rectangle to the points of the adjacent rectangle using a series of triangles.
+        Let's call each of these a "segment". The strip is formed by NRECT segments.  
+        
+        Most segments will be all the same color, but segments that include a minute/second "tick" mark in the middle third 
+        will require more than one color. Thus we need to define and add two groups for each segment, one for the middle third,
+        and one for the outer thirds, just in case the two are different colors. For an hour tick both will be dark; for a 
+        minute/second tick, only the middle third is dark; for segments that don't include a tick mark, both will be light. 
+        This assumes we have chosen the the tick mark mode with both hours and minutes/seconds; we have several other modes.
+    
+        Once we have added all the groups to our geometry object, we can create a mesh from it and add it to the scene.
+        We will use the material we created earlier for the mesh. We also define some light sources to illuminate the strip, and
+        the camera location
+    
+        We also need to define the hour, minute, and second indicators. For this we use standard geometry objects such as 
+        spheres and cylinders, and position them relative to the center of the strip.
+    
+        */
+        // Constants for Mobius strip generation
         const NRECT = 360;
         const m_NumPoints = NRECT;
         const m_Theta = (Math.PI * 2) / NRECT;
         const m_RotationPerRect = Math.PI / NRECT;
         const m_Len = 1.9; // Width of the mobius strip
         const m_Ht = 0.2; // Thickness of the mobius strip
-        const m_Radius = 3.4; // Radius of the centerline of the mobius strip
+        const m_Radius = 3.4; // Radius of the theoreticalcircle that forms the centerline of the mobius strip
         const m_SecondsRadius = 0.35;
         const m_MinutesRadius = 0.45;
         const m_HourSphereRadius = 0.55;
@@ -425,8 +482,10 @@
         //   across the strip; these sit in the inner third, occupying the part of the
         //   strip where the minute and second indicators move. As compared to the hour indicators
         //   that go all the way across.
-        // These terms (inner/outer/front/back) apply to the start of the strip at the bottom, while it's laying flat;
-        //  later at the top it will be vertical at the top of the arch, so "inner" and "outer" no longer make sense.
+        // These terms (inner/outer/front/back) only make sense at the start of the strip at the bottom, 
+        //  while it's laying flat;later at the top it will be vertical at the top of the arch, 
+        // so "inner" and "outer" no longer make sense in that context, but we keep the terms
+        // for consistency.
 
         let m_ThirdwayFromFrontToBackInner3DPtArray = []; // A third towards middle, from front inner to back inner
         let m_ThirdwayFromBackToFrontInner3DPtArray = []; // A third towards middle, from back inner to front inner
