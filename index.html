@@ -323,6 +323,18 @@ it will take 2 full turns to return to the starting point, thus allowing a 24-ho
                 /* Hide bottom info bar*/
             }
         }
+
+        .website-link {
+            color: #ADFF2F;
+            text-decoration: none;
+            font-weight: bold;
+            transition: opacity 0.2s;
+        }
+
+        .website-link:hover {
+            text-decoration: underline;
+            opacity: 0.8;
+        }
     </style>
 </head>
 
@@ -348,6 +360,11 @@ it will take 2 full turns to return to the starting point, thus allowing a 24-ho
             <div class="ui-element">
                 <button id="explainer-button" class="icon-btn">WHY?</button>
                 <span id="copyright" style="margin-left: 10px;">(C)2025 Charles L. Wallace</span>
+                <span style="margin-left: 10px;">|</span>
+                <a href="https://coolweird.com" target="_blank" class="website-link" style="margin-left: 10px;"
+                    onclick="gtag('event', 'click', { 'event_category': 'outbound', 'event_label': 'coolweird_link', 'transport_type': 'beacon' });">
+                    coolweird.com
+                </a>
             </div>
             <div id="controls-desktop" class="ui-element">
                 <button id="rotation-button" class="icon-btn">Rotate</button>
