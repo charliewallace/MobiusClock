@@ -1,6 +1,10 @@
+param (
+    [string]$TargetDir = "MobiusClock"
+)
+
 # Configuration
 $source = "$PSScriptRoot"
-$destination = "P:\Public Folder\MobiusClock"
+$destination = "P:\Public Folder\$TargetDir"
 
 
 # Ensure destination exists
