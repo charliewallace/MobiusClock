@@ -423,12 +423,22 @@ it will take 2 full turns to return to the starting point, thus allowing a 24-ho
 
             /* Corner buttons in landscape */
             /* Corner buttons in landscape */
+            /* Corner buttons in landscape */
             #mobile-controls-right {
-                right: 10px;
+                position: fixed !important;
+                /* Match Fullscreen button behavior */
+                right: 10px !important;
+                /* Standard padding */
                 bottom: 40px;
                 /* Increased margin from bottom */
                 flex-direction: column-reverse;
                 gap: 15px;
+                /* Safety Resets */
+                left: auto;
+                width: auto;
+                transform: none;
+                align-items: flex-end;
+                /* Ensure buttons align to the right edge */
             }
 
             #mobile-controls-right .icon-btn {
@@ -441,6 +451,20 @@ it will take 2 full turns to return to the starting point, thus allowing a 24-ho
                 /* Pill shape */
                 padding: 8px 12px;
                 color: white;
+                margin-left: 0 !important;
+                /* Remove default margin */
+            }
+
+            /* Move 'Why?' button to bottom-left */
+            #mobile-explainer {
+                position: fixed;
+                left: 10px;
+                bottom: 50px;
+                /* Above copyright */
+                right: auto;
+                width: auto;
+                margin-left: 0;
+                /* Remove default margin */
             }
 
             #fullscreen-btn {
@@ -449,7 +473,11 @@ it will take 2 full turns to return to the starting point, thus allowing a 24-ho
                 /* Added back to ensure positioning works */
                 top: 10px;
                 right: 10px;
+                /* Standard padding */
                 width: auto;
+                /* Safety Resets */
+                left: auto;
+                transform: none;
                 border-radius: 20px;
                 /* Pill shape */
                 font-size: 14px;
@@ -464,6 +492,7 @@ it will take 2 full turns to return to the starting point, thus allowing a 24-ho
                 top: 70px;
                 /* Increased spacing to clear fullscreen button */
                 right: 10px;
+                /* Keep aligned with edge */
             }
 
             #mobile-info-overlay {
