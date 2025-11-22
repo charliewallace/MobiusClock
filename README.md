@@ -5,6 +5,12 @@ A 3D Mobius strip adapted to work as a clock face, created by Charles L Wallace.
 ## Features
 - **3D Visualization**: A Mobius strip rendered in Three.js.
 - **Unique Timekeeping**: 24-hour time displayed on a 12-hour face geometry.
+- **Mobile Optimized**: Fully responsive layout for Portrait and Landscape modes.
+- **Fullscreen Mode**: Immersive experience with a dedicated fullscreen toggle.
+- **Interactive Controls**:
+    - **Rotate**: Manually rotate the view.
+    - **Fast Mode**: Speed up time for demonstration.
+    - **Show Hours**: Toggle hour markers.
 - **Customizable**: Settings for indicator shape, tick marks, and colors.
 
 ## Google Analytics
