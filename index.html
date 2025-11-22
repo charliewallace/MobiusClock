@@ -165,7 +165,8 @@ it will take 2 full turns to return to the starting point, thus allowing a 24-ho
             height: 100%;
             background: rgba(0, 0, 0, 0.85);
             backdrop-filter: blur(10px);
-            z-index: 100;
+            z-index: 2000;
+            /* Ensure above fullscreen button (1001) */
             transition: right 0.3s ease-in-out;
             padding: 20px;
             box-sizing: border-box;
@@ -309,6 +310,30 @@ it will take 2 full turns to return to the starting point, thus allowing a 24-ho
                 backdrop-filter: none !important;
             }
 
+            #digital-time {
+                font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+                /* Fixed width, clean */
+                right: 10px;
+                /* Right justified */
+                top: 15px;
+                /* Top corner */
+                font-size: 1.2em;
+                font-stretch: normal;
+            }
+
+            #settings-btn {
+                top: 50px;
+                /* Moved down to clear time display */
+                right: 10px;
+            }
+
+            #title {
+                font-size: 1.1em;
+                /* Slightly smaller to prevent overlap */
+                max-width: 60%;
+                /* Prevent running into time */
+            }
+
             .mobile-btn-group {
                 position: absolute;
                 bottom: 20px;
@@ -436,8 +461,8 @@ it will take 2 full turns to return to the starting point, thus allowing a 24-ho
             }
 
             #settings-btn {
-                top: 55px;
-                /* Below fullscreen button */
+                top: 70px;
+                /* Increased spacing to clear fullscreen button */
                 right: 10px;
             }
 
