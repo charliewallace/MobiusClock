@@ -150,6 +150,11 @@ it will take 2 full turns to return to the starting point, thus allowing a 24-ho
             padding: 8px 12px;
         }
 
+        #fullscreen-btn {
+            display: none;
+            /* Hidden by default (Desktop/Portrait) */
+        }
+
         /* Settings Panel (Slide-in) */
         #settings-panel {
             position: fixed;
@@ -277,55 +282,198 @@ it will take 2 full turns to return to the starting point, thus allowing a 24-ho
             cursor: pointer;
         }
 
-        @media (max-width: 600px) {
+        #mobile-info-overlay {
+            display: none;
+        }
+
+        /* Portrait Mobile Layout */
+        @media (max-width: 600px) and (orientation: portrait) {
             #controls-desktop {
                 display: none;
             }
 
+            #bottom-bar {
+                display: none;
+            }
+
             #mobile-toolbar {
+                display: block;
+                pointer-events: none;
+                width: 100%;
+                height: 100%;
+                position: fixed;
+                top: 0;
+                left: 0;
+                z-index: 50;
+                background: transparent !important;
+                backdrop-filter: none !important;
+            }
+
+            .mobile-btn-group {
+                position: absolute;
+                bottom: 20px;
                 display: flex;
+                gap: 15px;
+                pointer-events: auto;
             }
 
-            #settings-btn {
-                top: 10px;
-                right: 10px;
-                padding: 6px 10px;
-                font-size: 18px;
+            /* Center buttons in portrait */
+            #mobile-controls-right {
+                flex-direction: row;
+                justify-content: center;
+                width: 100%;
+                left: 0;
+                right: 0;
+                transform: translateX(-15px);
+                /* Nudge left to center visually */
             }
 
-            #digital-time {
-                top: 14px;
-                right: 75px;
-                /* Moved further left to avoid overlap */
-                font-size: 1em;
+            #mobile-controls-right .icon-btn {
+                width: auto;
+                height: auto;
+                font-size: 14px;
+                background: rgba(0, 0, 0, 0.6);
+                border: 1px solid #888;
+                border-radius: 20px;
+                /* Pill shape */
+                padding: 8px 12px;
+                color: white;
             }
 
-            #top-bar {
-                padding-right: 0;
-                padding-top: 0;
-                /* Remove padding */
-                top: 10px;
-                /* Align vertically with buttons */
+            #fullscreen-btn {
+                display: none;
             }
 
-            #title {
-                font-size: 1.2em;
+            /* Hide in portrait */
+
+            #mobile-info-overlay {
+                display: block;
+                position: fixed;
+                bottom: 50px;
+                /* Lowered from 80px */
+                left: 0;
+                width: 100%;
+                text-align: center;
+                font-size: 12px;
+                pointer-events: none;
+                z-index: 60;
+                text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+                background: #505050;
+                padding: 5px 0;
             }
 
-            /* Smaller title */
+            #mobile-info-overlay a {
+                pointer-events: auto;
+            }
+        }
 
-            #version {
-                font-size: 0.7em;
+        /* Landscape Mobile Layout */
+        @media (max-height: 600px) and (orientation: landscape) {
+            #controls-desktop {
+                display: none;
             }
 
             #bottom-bar {
                 display: none;
-                /* Hide bottom info bar*/
+            }
+
+            #mobile-toolbar {
+                display: block;
+                pointer-events: none;
+                width: 100%;
+                height: 100%;
+                position: fixed;
+                top: 0;
+                left: 0;
+                z-index: 50;
+                background: transparent !important;
+                backdrop-filter: none !important;
+            }
+
+            .mobile-btn-group {
+                position: absolute;
+                display: flex;
+                pointer-events: auto;
+            }
+
+            /* Corner buttons in landscape */
+            /* Corner buttons in landscape */
+            #mobile-controls-right {
+                right: 10px;
+                bottom: 40px;
+                /* Increased margin from bottom */
+                flex-direction: column-reverse;
+                gap: 15px;
+            }
+
+            #mobile-controls-right .icon-btn {
+                width: auto;
+                height: auto;
+                font-size: 14px;
+                background: rgba(0, 0, 0, 0.6);
+                border: 1px solid #888;
+                border-radius: 20px;
+                /* Pill shape */
+                padding: 8px 12px;
+                color: white;
+            }
+
+            #fullscreen-btn {
+                display: block;
+                position: fixed;
+                /* Added back to ensure positioning works */
+                top: 10px;
+                right: 10px;
+                width: auto;
+                border-radius: 20px;
+                /* Pill shape */
+                font-size: 14px;
+                padding: 8px 16px;
+                background: rgba(0, 0, 0, 0.6);
+                border: 1px solid #888;
+                z-index: 1001;
+                /* Ensure it's on top */
+            }
+
+            #settings-btn {
+                top: 55px;
+                /* Below fullscreen button */
+                right: 10px;
+            }
+
+            #mobile-info-overlay {
+                display: block;
+                position: fixed;
+                bottom: 10px;
+                left: 10px;
+                width: auto;
+                text-align: left;
+                font-size: 12px;
+                pointer-events: none;
+                z-index: 60;
+                text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+                background: #505050;
+                padding: 5px 10px;
+                border-radius: 5px;
+                font-size: 10px;
+                /* Smaller in landscape */
+                line-height: 1.3;
+                /* Tighter line height */
+                background: rgba(0, 0, 0, 0.5);
+                /* Less intrusive background */
+            }
+
+            #mobile-info-overlay a {
+                pointer-events: auto;
             }
         }
 
-        .website-link {
-            color: #ADFF2F;
+        /* Global Link Styles - Moved to end to ensure precedence */
+        .website-link,
+        .website-link:visited,
+        .website-link:hover,
+        .website-link:active {
+            color: #ADFF2F !important;
             text-decoration: none;
             font-weight: bold;
             transition: opacity 0.2s;
@@ -375,7 +523,9 @@ it will take 2 full turns to return to the starting point, thus allowing a 24-ho
     </div>
 
     <!-- Settings Button (Fixed) -->
+    <!-- Settings Button (Fixed) -->
     <button id="settings-btn" class="icon-btn">⚙️</button>
+    <button id="fullscreen-btn" class="icon-btn">Fullscreen</button>
 
     <!-- Settings Panel -->
     <div id="settings-panel">
@@ -408,10 +558,21 @@ it will take 2 full turns to return to the starting point, thus allowing a 24-ho
 
     <!-- Mobile Toolbar -->
     <div id="mobile-toolbar">
-        <button id="mobile-explainer" class="icon-btn">?</button>
-        <button id="mobile-rotate" class="icon-btn">Rotate</button>
-        <button id="mobile-fast" class="icon-btn">Fast</button>
-        <button id="mobile-hours" class="icon-btn">Hours</button>
+        <div id="mobile-controls-right" class="mobile-btn-group">
+            <button id="mobile-hours" class="icon-btn">Hours</button>
+            <button id="mobile-fast" class="icon-btn">Fast</button>
+            <button id="mobile-rotate" class="icon-btn">Rotate</button>
+            <button id="mobile-explainer" class="icon-btn">Why?</button>
+        </div>
+    </div>
+
+    <!-- Mobile Info Overlay -->
+    <div id="mobile-info-overlay">
+        (C)2025 Charles L. Wallace<br>
+        <a href="https://coolweird.com" target="_blank" class="website-link"
+            onclick="gtag('event', 'click', { 'event_category': 'outbound', 'event_label': 'coolweird_link', 'transport_type': 'beacon' });">
+            coolweird.com
+        </a>
     </div>
 
     <!-- Explainer Modal -->
@@ -1219,7 +1380,7 @@ it will take 2 full turns to return to the starting point, thus allowing a 24-ho
 
             // Adjust camera distance for mobile to fit the model
             if (width < 600) {
-                camera.position.z = 12.5; // Zoom out for mobile (adjusted larger)
+                camera.position.z = 11.0; // Zoom in for mobile (10% larger than 12.5)
             } else {
                 camera.position.z = 7.2; // Default for desktop (adjusted larger)
             }
@@ -1228,6 +1389,31 @@ it will take 2 full turns to return to the starting point, thus allowing a 24-ho
         init();
         handleWindowResize();
         setupUIEventListeners();
+
+        // Fullscreen Logic
+        const fullscreenBtn = document.getElementById('fullscreen-btn');
+
+        // Removed manual display logic to let CSS handle visibility based on orientation
+
+        fullscreenBtn.addEventListener('click', () => {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => {
+                    console.log(`Error attempting to enable fullscreen: ${err.message}`);
+                });
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                }
+            }
+        });
+
+        document.addEventListener('fullscreenchange', () => {
+            if (document.fullscreenElement) {
+                fullscreenBtn.textContent = 'Exit';
+            } else {
+                fullscreenBtn.textContent = 'Fullscreen';
+            }
+        });
 
         window.addEventListener('resize', handleWindowResize);
 
