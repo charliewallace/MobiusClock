@@ -429,8 +429,8 @@ it will take 2 full turns to return to the starting point, thus allowing a 24-ho
                 /* Match Fullscreen button behavior */
                 right: 10px !important;
                 /* Standard padding */
-                bottom: 40px;
-                /* Increased margin from bottom */
+                bottom: 15px;
+                /* Moved down from 40px to avoid overlap */
                 flex-direction: column-reverse;
                 gap: 15px;
                 /* Safety Resets */
@@ -489,10 +489,17 @@ it will take 2 full turns to return to the starting point, thus allowing a 24-ho
             }
 
             #settings-btn {
-                top: 70px;
-                /* Increased spacing to clear fullscreen button */
+                top: 55px;
+                /* Moved up to 55px to clear controls */
                 right: 10px;
                 /* Keep aligned with edge */
+
+                /* Match other buttons styling */
+                background: rgba(0, 0, 0, 0.6);
+                border: 1px solid #888;
+                border-radius: 20px;
+                padding: 8px 12px;
+                width: auto;
             }
 
             #mobile-info-overlay {
