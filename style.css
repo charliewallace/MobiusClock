@@ -391,6 +391,17 @@
                 backdrop-filter: none !important;
             }
 
+            #digital-time {
+                font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+                /* Narrower, cleaner font */
+                position: fixed;
+                top: 15px;
+                /* Align baseline with Fullscreen button */
+                right: 120px;
+                /* Moved left to avoid model overlap */
+                font-size: 1.2em;
+            }
+
             .mobile-btn-group {
                 position: absolute;
                 display: flex;
