@@ -400,7 +400,7 @@ let edgePath = [];
 
 function createHourNumbers() {
     hourNumbersGroup = new THREE.Group();
-    hourNumbersGroup.visible = false;
+    hourNumbersGroup.visible = true; // Changed to true for default visibility
     mobiusGroup.add(hourNumbersGroup);
 
     const loader = new THREE.FontLoader();
@@ -770,8 +770,8 @@ function updateClock() {
 }
 
 let indicatorShapes = {
-    hours: 'sphere',
-    minutes: 'sphere',
+    hours: 'outer-ring',
+    minutes: 'ring',
     seconds: 'sphere'
 };
 
@@ -836,9 +836,9 @@ function setIndicatorShape(type, shape) {
 }
 
 function createClockHands() {
-    // Initialize all with default 'sphere'
-    setIndicatorShape('hours', 'sphere');
-    setIndicatorShape('minutes', 'sphere');
+    // Initialize with new defaults
+    setIndicatorShape('hours', 'outer-ring');
+    setIndicatorShape('minutes', 'ring');
     setIndicatorShape('seconds', 'sphere');
 }
 function handleWindowResize() {

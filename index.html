@@ -33,7 +33,7 @@ it will take 2 full turns to return to the starting point, thus allowing a 24-ho
         <div id="top-bar">
             <div class="ui-element">
                 <h1 id="title">Mobius Clock</h1>
-                <div id="version">Version 0.3.0</div>
+                <div id="version">Version 0.5.0</div>
             </div>
             <!-- Digital Time (Desktop) top-right for desktop. -->
             <div class="ui-element" id="digital-time-container">
@@ -77,18 +77,18 @@ it will take 2 full turns to return to the starting point, thus allowing a 24-ho
                 <label>Hours:
                     <select id="shape-hours"
                         style="margin-left: 10px; padding: 5px; background: #444; color: white; border: 1px solid #666;">
-                        <option value="sphere" selected>Sphere</option>
+                        <option value="sphere">Sphere</option>
                         <option value="disc">Disc</option>
                         <option value="ring">Ring</option>
-                        <option value="outer-ring">Outer Ring</option>
+                        <option value="outer-ring" selected>Outer Ring</option>
                     </select>
                 </label>
                 <label>Minutes:
                     <select id="shape-minutes"
                         style="margin-left: 10px; padding: 5px; background: #444; color: white; border: 1px solid #666;">
-                        <option value="sphere" selected>Sphere</option>
+                        <option value="sphere">Sphere</option>
                         <option value="disc">Disc</option>
-                        <option value="ring">Ring</option>
+                        <option value="ring" selected>Ring</option>
                     </select>
                 </label>
                 <label>Seconds:
@@ -148,7 +148,7 @@ it will take 2 full turns to return to the starting point, thus allowing a 24-ho
         </div>
     </div>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="script.js?v=0.3.4"></script>
+    <script src="script.js?v=0.3.5"></script>
 </body>
 
 </html>

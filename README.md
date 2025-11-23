@@ -11,7 +11,11 @@ A 3D Mobius strip adapted to work as a clock face, created by Charles L Wallace.
     - **Rotate**: Manually rotate the view.
     - **Fast Mode**: Speed up time for demonstration.
     - **Show Hours**: Toggle hour markers.
-- **Customizable**: Settings for indicator shape, tick marks, and colors.
+- **Customizable Indicators**: Individual shape selection for each time indicator:
+    - **Hours**: Sphere, Disc, Ring, or Outer Ring (encircles hour numbers)
+    - **Minutes**: Sphere, Disc, or Ring
+    - **Seconds**: Sphere or Disc
+- **Tick Mark Styles**: Multiple schemes including Standard, Minimal, Alternating Colors, and more.
 
 ## Google Analytics
 This project uses Google Analytics (GA4) to track usage.
