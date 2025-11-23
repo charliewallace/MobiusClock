@@ -690,22 +690,14 @@ function updateClock() {
         // Calculate raw fast time (24 hours in 60 seconds)
         let rawFastHour24 = (24.0 / 60.0) * sec60;
 
-        // In fast mode, each hour takes 60/24 = 2.5 real seconds
-        // To pause for 1 second at each hour, detect when we're within
-        // 0.5 real seconds of an hour mark
+        // Calculate position within current hour to determine pause window
+        let fractionalHour = rawFastHour24 % 1; // 0 to 1 within each hour
+        let minutesWithinHour = fractionalHour < 0.5 ? fractionalHour * 60 : (1 - fractionalHour) * 60;
 
-        // Calculate which hour we're closest to
-        let nearestHour = Math.round(rawFastHour24);
-
-        // Calculate the real seconds position where this hour occurs
-        let hourPositionInSeconds = nearestHour / 0.4; // Since hour24 = 0.4 * sec60
-
-        // Calculate how far we are (in real seconds) from this hour position
-        let secondsFromHour = Math.abs(sec60 - hourPositionInSeconds);
-
-        // If we're within 0.5 real seconds of an hour, pause at that hour
-        if (secondsFromHour < 0.5) {
-            hour24 = nearestHour;
+        // In fast mode: pause when within ±12 clock minutes (= 1 real second) to show full rotation
+        // Rotation completes in 1 real second, and 1 real second = 24 clock minutes in fast mode
+        if (minutesWithinHour <= 12) {
+            hour24 = Math.round(rawFastHour24);
         } else {
             hour24 = rawFastHour24;
         }
@@ -777,9 +769,12 @@ function updateClock() {
             const outerRadius = 0.4 + 0.10; // torus radius (0.4) + tube radius (0.10)
             hourSphere.position.addScaledVector(dirOutward, outerRadius);
 
-            // Orient torus axis perpendicular to strip plane (for rolling along edge)
+            // Calculate vectors for torus orientation
             const tangent = new THREE.Vector3().subVectors(p2, p1).normalize();
             const normal = new THREE.Vector3().crossVectors(tangent, dirOutward).normalize();
+
+            // Orient torus axis perpendicular to both dirOutward and strip plane
+            // This aligns torus axis with the normal (perpendicular to strip surface)
             hourSphere.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), normal);
 
             // Add rotation animation during ±1 minute from each hour
@@ -804,10 +799,11 @@ function updateClock() {
                     rotationAngle = (currentSeconds / 2) * Math.PI * 2; // Complete rotation every 2 seconds
                 }
 
-                // Apply rotation around the normal to the strip surface
-                // This axis connects the two edges of the strip and passes through the torus center
-                const rotationQuat = new THREE.Quaternion().setFromAxisAngle(normal, rotationAngle);
-                hourSphere.quaternion.multiply(rotationQuat);
+                // Apply rotation around dirOutward in world space
+                // Use premultiply to apply rotation BEFORE torus orientation
+                // This ensures dirOutward is interpreted in world coordinates, not local torus space
+                const rotationQuat = new THREE.Quaternion().setFromAxisAngle(dirOutward, rotationAngle);
+                hourSphere.quaternion.premultiply(rotationQuat);
             }
         } else if (indicatorShapes.hours === 'disc') {
             const tangent = new THREE.Vector3().subVectors(p2, p1).normalize();
