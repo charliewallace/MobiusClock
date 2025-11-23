@@ -1,0 +1,855 @@
+/*  THEORY of how the Mobius strip is constructed:
+We start with a circle of radius m_Radius. This is not actually drawn on the screen, it's simply a theoretical
+circle that forms the centerline of the Mobius strip. Picture it positioned vertically.
+  The next theoretical step: picture a series of NRECT long slender rectangles
+placed on the circle such that it passes perpendicularly through the center of each rectangle.  The first one 
+is at the bottom of the circle, positioned so the long axis is horizontal.  We can imagine initially all of them in this
+orientation; next we will rotate each one around it's center by an angle of m_Theta = 2*PI/NRECT more than the previous one.
+This angle is chosen so that the last rectangle will be rotated 180 degrees from the first one, creating the Mobius strip.
+ 
+We don't draw these; instead we create a set of points (vertices) on each rectangle.  For now, consider the four corners.
+In order to define the shape of the mobius strip, we need to connect the points of a given rectangle to the points of the
+adjacent rectangles using a series of triangles.  Keep in mind that the edges of those adjacent rectangles are NOT 
+parallel the the edges of the given rectangle due to the rotation of the rectangles.  That's why we need to use 
+triangles to connect the points.  
+ 
+For our strip, we define 4 points on each long edge of each rectangle, front and back. The outer points we already
+described above; these are the corners of the rectangle.  The inner points are one third of the way in from the edge
+(corner) towards the middle (along the wide side, not the edge).  We call these "thirdway" points.  The thirdway
+points are used to define the minute and second tick marks that occupy the middle of the strip.  
+The hour tick marks are the full width of the strip.
+ 
+First we calculate the x/y/z coordinates for each of the 8 points per rectangle and store them in arrays.
+Then we use those arrays to create a set of vertices (3D points) that are "pushed" into the master vertices buffer.  
+Next, we create the "indices" buffer that defines the triangles that make up the strip. The name "indices" is a bit 
+confusing; it contains our triangles as a series of sets of three indices that point into the vertices buffer. Note
+that the order of the indices determines which way they point (front vs back), using the right hand rule.
+
+ATTN: there's a special case for the last segment, where the last rectangle is rotated 180 degrees from the first one.
+This is because the last rectangle is connected to the first one, and the first one is rotated 180 degrees from the last one.
+This means that the last rectangle is connected to the first one in the opposite direction, and the indices need to be reversed.
+ 
+So now we have the triangles we need, but we still need to "add" them to our "geometry" object in form of a 
+series of "groups".  Each group shares the same "material" which determines its color, transparency, reflectivity, etc.
+ 
+Going back to our original theoretical rectangles, consider each pair of rectangles that are side by side.
+We need to connect the points of one rectangle to the points of the adjacent rectangle using a series of triangles.
+Let's call each of these a "segment". The strip is formed by NRECT segments.  
+ 
+Most segments will be all the same color, but segments that include a minute/second "tick" mark in the middle third 
+will require more than one color. Thus we need to define and add two groups for each segment, one for the middle third,
+and one for the outer thirds, just in case the two are different colors. For an hour tick both will be dark; for a 
+minute/second tick, only the middle third is dark; for segments that don't include a tick mark, both will be light. 
+This assumes we have chosen the the tick mark mode with both hours and minutes/seconds; we have several other modes.
+ 
+Once we have added all the groups to our geometry object, we can create a mesh from it and add it to the scene.
+We will use the material we created earlier for the mesh. We also define some light sources to illuminate the strip, and
+the camera location
+ 
+We also need to define the hour, minute, and second indicators. For this we use standard geometry objects such as 
+spheres and cylinders, and position them relative to the center of the strip.
+ 
+*/
+// Constants for Mobius strip generation
+const NRECT = 360;
+const m_NumPoints = NRECT;
+const m_Theta = (Math.PI * 2) / NRECT;
+const m_RotationPerRect = Math.PI / NRECT;
+const m_Len = 1.9; // Width of the mobius strip
+const m_Ht = 0.2; // Thickness of the mobius strip
+const m_Radius = 3.4; // Radius of the theoreticalcircle that forms the centerline of the mobius strip
+const m_SecondsRadius = 0.35;
+const m_MinutesRadius = 0.45;
+const m_HourSphereRadius = 0.55;
+
+// Arrays to hold the generated points
+let m_RectCenter3DPtArray = [];
+let m_FrontInnerCorner3DPtArray = [];
+let m_BackInnerCorner3DPtArray = [];
+let m_FrontOuterCorner3DPtArray = [];
+let m_BackOuterCorner3DPtArray = [];
+
+// "Thirdway" refers to a point one third of the way
+//   in from the edge (corner) towards the middle
+//   of the strip (along the wide side, not the edge),
+//   along a line connecting front to back, or back to front,
+//   for inner and outer.
+// Purpose: for minute/second tick marks that don't extend all the way 
+//   across the strip; these sit in the inner third, occupying the part of the
+//   strip where the minute and second indicators move. As compared to the hour indicators
+//   that go all the way across.
+// These terms (inner/outer/front/back) only make sense at the start of the strip at the bottom, 
+//  while it's laying flat;later at the top it will be vertical at the top of the arch, 
+// so "inner" and "outer" no longer make sense in that context, but we keep the terms
+// for consistency.
+
+let m_ThirdwayFromFrontToBackInner3DPtArray = []; // A third towards middle, from front inner to back inner
+let m_ThirdwayFromBackToFrontInner3DPtArray = []; // A third towards middle, from back inner to front inner
+let m_ThirdwayFromFrontToBackOuter3DPtArray = []; // A third towards middle, from front outer to back outer
+let m_ThirdwayFromBackToFrontOuter3DPtArray = []; // A third towards middle, from back outer to front outer
+
+
+// In this fcn we initialize the point arrays.  Later in createMobiusStripMesh() we will push all the points
+//  into the "vertices" array.  We use indices into this array to indirectly refer to the points when
+//  we create the triangles of the model by adding them to the indices array.
+function generateMobius3dPoints() {
+    const s = Math.sqrt(m_Len * m_Len + m_Ht * m_Ht) / 2;
+    const beta = Math.asin(m_Ht / (2 * s));
+
+    for (let ii = 0; ii < m_NumPoints; ii++) {
+        const phi = (-Math.PI / 2) + ii * m_Theta;
+        const alpha = m_RotationPerRect * ii;
+
+        const x = m_Radius * Math.cos(phi);
+        const y = m_Radius * Math.sin(phi);
+        const z = 0;
+        m_RectCenter3DPtArray[ii] = new THREE.Vector3(x, y, z);
+
+        const z1 = s * Math.cos(beta - alpha);
+        const r1 = m_Radius - (s * Math.sin(beta - alpha));
+        const x1 = r1 * Math.cos(phi);
+        const y1 = r1 * Math.sin(phi);
+        m_FrontInnerCorner3DPtArray[ii] = new THREE.Vector3(x1, y1, z1);
+
+        const z2 = -s * Math.cos(beta + alpha);
+        const r2 = m_Radius - (s * Math.sin(beta + alpha));
+        const x2 = r2 * Math.cos(phi);
+        const y2 = r2 * Math.sin(phi);
+        m_BackInnerCorner3DPtArray[ii] = new THREE.Vector3(x2, y2, z2);
+
+        const z3 = s * Math.cos(beta + alpha);
+        const r3 = m_Radius + (s * Math.sin(beta + alpha));
+        const x3 = r3 * Math.cos(phi);
+        const y3 = r3 * Math.sin(phi);
+        m_FrontOuterCorner3DPtArray[ii] = new THREE.Vector3(x3, y3, z3);
+
+        const z4 = -s * Math.cos(beta - alpha);
+        const r4 = m_Radius + (s * Math.sin(beta - alpha));
+        const x4 = r4 * Math.cos(phi);
+        const y4 = r4 * Math.sin(phi);
+        m_BackOuterCorner3DPtArray[ii] = new THREE.Vector3(x4, y4, z4);
+
+        // init the thirdway arrays
+        // m_ThirdwayFromFrontToBackInner3DPtArray = fi3 (frontInnerCorner, backInnerCorner)
+        const x5 = x1 - ((x1 - x2) / 3);
+        const y5 = y1 - ((y1 - y2) / 3);
+        const z5 = z1 - ((z1 - z2) / 3);
+        m_ThirdwayFromFrontToBackInner3DPtArray[ii] = new THREE.Vector3(x5, y5, z5);
+
+        // m_ThirdwayFromBackToFrontInner3DPtArray = bi3 (backInnerCorner, frontInnerCorner)
+        const x6 = x2 - ((x2 - x1) / 3);
+        const y6 = y2 - ((y2 - y1) / 3);
+        const z6 = z2 - ((z2 - z1) / 3);
+        m_ThirdwayFromBackToFrontInner3DPtArray[ii] = new THREE.Vector3(x6, y6, z6);
+
+        // m_ThirdwayFromFrontToBackOuter3DPtArray = fo3 (frontOuterCorner, backOuterCorner)
+        const x7 = x3 - ((x3 - x4) / 3);
+        const y7 = y3 - ((y3 - y4) / 3);
+        const z7 = z3 - ((z3 - z4) / 3);
+        m_ThirdwayFromFrontToBackOuter3DPtArray[ii] = new THREE.Vector3(x7, y7, z7);
+
+        // m_ThirdwayFromBackToFrontOuter3DPtArray = bo3 (backOuterCorner, frontOuterCorner)
+        const x8 = x4 - ((x4 - x3) / 3);
+        const y8 = y4 - ((y4 - y3) / 3);
+        const z8 = z4 - ((z4 - z3) / 3);
+        m_ThirdwayFromBackToFrontOuter3DPtArray[ii] = new THREE.Vector3(x8, y8, z8);
+    }
+}
+
+generateMobius3dPoints();
+
+let scene, camera, renderer, mobiusGroup;
+let rotationEnabled = false;
+let fastMode = false;
+let hourNumbersGroup;
+let mobiusStripMesh;
+
+
+function init() {
+    scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x505050); // Medium gray
+
+    camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera.position.z = 7;
+
+    renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+
+
+    document.getElementById('container').appendChild(renderer.domElement);
+
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+    scene.add(ambientLight);
+
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
+    directionalLight.position.set(0, 1, 1);
+    scene.add(directionalLight);
+
+    const topRightLight = new THREE.DirectionalLight(0xffffff, 0.8);
+    topRightLight.position.set(1, 1, 2);
+    scene.add(topRightLight);
+
+    mobiusGroup = new THREE.Group();
+    scene.add(mobiusGroup);
+
+    createMobiusStripMesh();
+    createClockHands();
+
+    edgePath = m_FrontInnerCorner3DPtArray.concat(m_BackOuterCorner3DPtArray);
+    createHourNumbers();
+
+    animate();
+}
+
+
+function createMobiusStripMesh() {
+    const geometry = new THREE.BufferGeometry();
+    const vertices = [];
+    const indices = [];
+
+    // Load all of the points into the vertices array.  We will refer to them via their indexes (indices) into this 
+    //   vertices array when defining the triangles that will go into the confusingly-named indices array below.
+    //   Seems like the indices array should have been called the triangles array, but oh well.
+    for (let i = 0; i < m_NumPoints; i++) {
+        vertices.push(m_FrontInnerCorner3DPtArray[i].x, m_FrontInnerCorner3DPtArray[i].y, m_FrontInnerCorner3DPtArray[i].z);
+        vertices.push(m_BackInnerCorner3DPtArray[i].x, m_BackInnerCorner3DPtArray[i].y, m_BackInnerCorner3DPtArray[i].z);
+        vertices.push(m_FrontOuterCorner3DPtArray[i].x, m_FrontOuterCorner3DPtArray[i].y, m_FrontOuterCorner3DPtArray[i].z);
+        vertices.push(m_BackOuterCorner3DPtArray[i].x, m_BackOuterCorner3DPtArray[i].y, m_BackOuterCorner3DPtArray[i].z);
+
+        //  TODO: push vertices for the 4 thirdway arrays. 
+        vertices.push(m_ThirdwayFromFrontToBackInner3DPtArray[i].x,
+            m_ThirdwayFromFrontToBackInner3DPtArray[i].y,
+            m_ThirdwayFromFrontToBackInner3DPtArray[i].z);
+        vertices.push(m_ThirdwayFromBackToFrontInner3DPtArray[i].x,
+            m_ThirdwayFromBackToFrontInner3DPtArray[i].y,
+            m_ThirdwayFromBackToFrontInner3DPtArray[i].z);
+        vertices.push(m_ThirdwayFromFrontToBackOuter3DPtArray[i].x,
+            m_ThirdwayFromFrontToBackOuter3DPtArray[i].y,
+            m_ThirdwayFromFrontToBackOuter3DPtArray[i].z);
+        vertices.push(m_ThirdwayFromBackToFrontOuter3DPtArray[i].x,
+            m_ThirdwayFromBackToFrontOuter3DPtArray[i].y,
+            m_ThirdwayFromBackToFrontOuter3DPtArray[i].z);
+
+        //
+    }
+
+    for (let i = 0; i < m_NumPoints; i++) {
+        let r1 = i;
+        let r2 = (i + 1) % m_NumPoints; // use mod op to handle wrap to 0 at end
+
+        //let fi1 = r1 * 4;
+        let fi1 = r1 * 8;
+        let bi1 = fi1 + 1;
+        let fo1 = fi1 + 2;
+        let bo1 = fi1 + 3;
+
+        let fi3 = fi1 + 4;
+        let bi3 = fi1 + 5;
+        let fo3 = fi1 + 6;
+        let bo3 = fi1 + 7;
+
+        //let fi2 = r2 * 4;
+        let fi2 = r2 * 8;
+        let bi2 = fi2 + 1;
+        let fo2 = fi2 + 2;
+        let bo2 = fi2 + 3;
+
+        let fi4 = fi2 + 4;
+        let bi4 = fi2 + 5;
+        let fo4 = fi2 + 6;
+        let bo4 = fi2 + 7;
+
+
+        // must reverse the order for last slice due to 180 rotation
+        if (i === m_NumPoints - 1) {
+            bo2 = 0;
+            fo2 = bo2 + 1;
+            bi2 = bo2 + 2;
+            fi2 = bo2 + 3;
+
+            bo4 = 4;
+            fo4 = 5;
+            bi4 = 6;
+            fi4 = 7;
+        }
+
+        // The following must push the points using the right-hand rule.
+        // These share the same material.
+
+
+
+        // This represents the front third of the strip.
+        indices.push(fi2, fi3, fi1); // inner face
+        indices.push(fi2, fi4, fi3);
+        indices.push(fo1, fo3, fo2); // outer face
+        indices.push(fo4, fo2, fo3);
+        indices.push(fo1, fi2, fi1); // front edge face
+        indices.push(fo2, fi2, fo1);
+
+        // This represents the back third of the strip.
+
+        indices.push(bi4, bi1, bi3); // inner face
+        indices.push(bi4, bi2, bi1);
+        indices.push(bo4, bo3, bo1); // outer face
+        indices.push(bo4, bo1, bo2);
+        indices.push(bi2, bo1, bi1); // back edge face
+        indices.push(bi2, bo2, bo1);
+
+        // These represent the inside third, front and back. These will be
+        //  in a separate group bc they may use a different material.
+        indices.push(fi4, bi3, fi3); // tick inner face (thirdway)
+        indices.push(fi4, bi4, bi3);
+        indices.push(fo4, fo3, bo3); // tick outer face (thirdway)
+        indices.push(fo4, bo3, bo4);
+
+
+
+    }
+
+    geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+    geometry.setIndex(indices);
+
+    const indicesPerSegment = 48;
+    const indicesOuterThirds = 36;
+    const indicesMiddleThird = 12;
+
+    for (let i = 0; i < m_NumPoints; i++) {
+        let matOuter = 0;
+        let matMiddle = 0;
+
+        const isHourTick = (i % 30 === 0);
+        const isMinuteTick = (i % 6 === 0);
+        const hourIndex = Math.floor(i / 30);
+        const minuteIndex = Math.floor(i / 6);
+
+        switch (currentTickScheme) {
+            case 'minimal':
+                // Hour ticks only, full width
+                matOuter = isHourTick ? 1 : 0;
+                matMiddle = isHourTick ? 1 : 0;
+                break;
+            case 'standard':
+                // Hour (full width) and Minute (middle only) ticks
+                matOuter = isHourTick ? 1 : 0;
+                matMiddle = (isHourTick || isMinuteTick) ? 1 : 0;
+                break;
+            case 'alternating':
+                // Stripes, no specific ticks
+                matOuter = (hourIndex % 2 === 0) ? 0 : 2;
+                matMiddle = matOuter;
+                break;
+            case 'alternating_ticks':
+                // Outer: Hour stripes
+                matOuter = (hourIndex % 2 === 0) ? 0 : 2;
+                // Middle: Minute stripes (Dark/Light)
+                matMiddle = (minuteIndex % 2 === 0) ? 2 : 0;
+                break;
+        }
+
+        geometry.addGroup(i * indicesPerSegment, indicesOuterThirds, matOuter);
+        geometry.addGroup(i * indicesPerSegment + indicesOuterThirds, indicesMiddleThird, matMiddle);
+    }
+
+    geometry.computeVertexNormals();
+
+    const materials = [
+        new THREE.MeshStandardMaterial({
+            color: 0xD3D3D3, // Material 0: Light gray (Main strip A)
+            side: THREE.DoubleSide,
+            metalness: 0.5,
+            roughness: 0.1,
+            transparent: true,
+            opacity: 0.95
+        }),
+        new THREE.MeshStandardMaterial({
+            color: 0x222222, // Material 1: Dark gray (Tick color)
+            side: THREE.DoubleSide,
+            metalness: 0.5,
+            roughness: 0.1
+        }),
+        new THREE.MeshStandardMaterial({
+            color: 0x222222, // Material 2: Dark gray (Same as ticks, for alternating)
+            side: THREE.DoubleSide,
+            metalness: 0.5,
+            roughness: 0.1,
+            transparent: true,
+            opacity: 0.95
+        })
+    ];
+
+    const mesh = new THREE.Mesh(geometry, materials);
+
+    if (mobiusStripMesh) {
+        mobiusGroup.remove(mobiusStripMesh);
+        mobiusStripMesh.geometry.dispose(); // Clean up old geometry
+        mobiusStripMesh.material.forEach(m => m.dispose()); // Clean up old materials if they were unique
+    }
+    mobiusStripMesh = mesh;
+    mobiusGroup.add(mobiusStripMesh);
+}
+
+let currentTickScheme = 'standard';
+
+function setTickScheme(scheme) {
+    currentTickScheme = scheme;
+    createMobiusStripMesh(); // Recreate the mesh with the new scheme
+}
+
+let hourSphere, minuteSphere, secondSphere;
+let edgePath = [];
+
+function createHourNumbers() {
+    hourNumbersGroup = new THREE.Group();
+    hourNumbersGroup.visible = false;
+    mobiusGroup.add(hourNumbersGroup);
+
+    const loader = new THREE.FontLoader();
+    loader.load('https://unpkg.com/three@0.128.0/examples/fonts/helvetiker_regular.typeface.json', function (font) {
+        const textMaterial = new THREE.MeshStandardMaterial({ color: 0xffffff });
+
+        for (let h = 1; h <= 24; h++) {
+            let hourNumStr = h.toString();
+            let suffixStr = 'AM';
+
+            if (h === 24) { hourNumStr = '12'; suffixStr = 'AM'; }
+            else if (h === 12) { hourNumStr = '12'; suffixStr = 'PM'; }
+            else if (h > 12) { hourNumStr = (h - 12).toString(); suffixStr = 'PM'; }
+            else { hourNumStr = h.toString(); suffixStr = 'AM'; }
+
+            const hourGroup = new THREE.Group();
+
+            // 1. Number Mesh
+            const numGeo = new THREE.TextGeometry(hourNumStr, {
+                font: font,
+                size: 0.25,
+                height: 0.02, // Thinner extrusion for better look? Or keep 0.05
+                curveSegments: 4,
+                bevelEnabled: false
+            });
+            numGeo.computeBoundingBox();
+            const numWidth = numGeo.boundingBox.max.x - numGeo.boundingBox.min.x;
+            const numMesh = new THREE.Mesh(numGeo, textMaterial);
+            hourGroup.add(numMesh);
+
+            // 2. Suffix Meshes (Stacked)
+            const topChar = suffixStr[0]; // 'A' or 'P'
+            const botChar = suffixStr[1]; // 'M'
+            const suffixSize = 0.12;
+            const marginX = 0.05; // Increased margin
+
+            // Top Suffix
+            const topGeo = new THREE.TextGeometry(topChar, {
+                font: font,
+                size: suffixSize,
+                height: 0.02,
+                curveSegments: 4,
+                bevelEnabled: false
+            });
+            const topMesh = new THREE.Mesh(topGeo, textMaterial);
+            // Use boundingBox.max.x to position relative to the actual right edge of the number
+            topMesh.position.set(numGeo.boundingBox.max.x + marginX, 0.13, 0);
+            hourGroup.add(topMesh);
+
+            // Bottom Suffix
+            const botGeo = new THREE.TextGeometry(botChar, {
+                font: font,
+                size: suffixSize,
+                height: 0.02,
+                curveSegments: 4,
+                bevelEnabled: false
+            });
+            const botMesh = new THREE.Mesh(botGeo, textMaterial);
+            botMesh.position.set(numGeo.boundingBox.max.x + marginX, 0.0, 0);
+            hourGroup.add(botMesh);
+
+            // 3. Center the content
+            // Approximate total width
+            topGeo.computeBoundingBox();
+            botGeo.computeBoundingBox();
+            const topWidth = topGeo.boundingBox.max.x - topGeo.boundingBox.min.x;
+            const botWidth = botGeo.boundingBox.max.x - botGeo.boundingBox.min.x;
+            const suffixWidth = Math.max(topWidth, botWidth);
+
+            // Total width is from min.x of number to max.x of suffix
+            // We assume number starts around 0, but let's be precise
+            const totalWidth = (numGeo.boundingBox.max.x + marginX + suffixWidth) - numGeo.boundingBox.min.x;
+            const totalHeight = 0.25;
+
+            // Shift all children to center
+            // We want to shift by (min.x + totalWidth/2) ?
+            // Or just center the bounding box of the whole group.
+            // Let's shift by half the total width relative to the start.
+            const shiftX = numGeo.boundingBox.min.x + totalWidth / 2;
+
+            hourGroup.children.forEach(child => {
+                child.position.x -= shiftX;
+                child.position.y -= totalHeight / 2;
+            });
+
+            // 4. Position the Group on the Strip
+            // Restore original positioning logic:
+            // Midnight (24/0) is at index 180. Direction is backwards (minus).
+            // Index = 180 - (h * 30). Handle wrapping.
+            let idx = ((180 - (h * 30)) % 720 + 720) % 720;
+
+            const p = edgePath[idx];
+
+            // Calculate direction for offset (outward)
+            const centerIndex = idx % m_NumPoints;
+            const centerPt = m_RectCenter3DPtArray[centerIndex];
+
+            // Vector from center to edge point
+            const dir = new THREE.Vector3().subVectors(p, centerPt).normalize();
+
+            // Position slightly outside
+            const pos = new THREE.Vector3().copy(p).add(dir.multiplyScalar(0.4));
+            hourGroup.position.copy(pos);
+
+            // Orient text to face outward from the strip (Initial orientation)
+            hourGroup.lookAt(new THREE.Vector3().addVectors(pos, dir));
+
+            hourNumbersGroup.add(hourGroup);
+        }
+    });
+}
+
+
+
+function animate() {
+    requestAnimationFrame(animate); // this tells the browser to call animate() for the *next* frame
+    updateClock();
+    if (rotationEnabled) {
+        mobiusGroup.rotation.y += 0.005;
+    }
+    renderer.render(scene, camera);
+}
+function setupUIEventListeners() {
+    // --- DESKTOP BUTTONS ---
+    const rotationButton = document.getElementById('rotation-button');
+    const fastModeButton = document.getElementById('fast-mode-button');
+    const hoursButton = document.getElementById('hours-button');
+
+    // Rotation
+    const toggleRotation = () => {
+        rotationEnabled = !rotationEnabled;
+        mobiusGroup.rotation.y = 0;
+        const text = rotationEnabled ? 'Stop Rotation' : 'Rotate';
+        if (rotationButton) rotationButton.textContent = text;
+        const mobileBtn = document.getElementById('mobile-rotate');
+        if (mobileBtn) mobileBtn.textContent = rotationEnabled ? 'Stop' : 'Rotate';
+
+        // Visual feedback
+        if (rotationButton) rotationButton.classList.toggle('active', rotationEnabled);
+        if (mobileBtn) mobileBtn.classList.toggle('active', rotationEnabled);
+    };
+    if (rotationButton) rotationButton.addEventListener('click', toggleRotation);
+
+    // Fast Mode
+    const toggleFastMode = () => {
+        fastMode = !fastMode;
+        const text = fastMode ? 'Stop Fast' : 'Fast Mode';
+        if (fastModeButton) fastModeButton.textContent = text;
+        const mobileBtn = document.getElementById('mobile-fast');
+        if (mobileBtn) mobileBtn.textContent = fastMode ? 'Stop' : 'Fast';
+
+        if (fastModeButton) fastModeButton.classList.toggle('active', fastMode);
+        if (mobileBtn) mobileBtn.classList.toggle('active', fastMode);
+    };
+    if (fastModeButton) fastModeButton.addEventListener('click', toggleFastMode);
+
+    // Hours
+    const toggleHours = () => {
+        if (hourNumbersGroup) {
+            hourNumbersGroup.visible = !hourNumbersGroup.visible;
+            const isActive = hourNumbersGroup.visible;
+            const text = isActive ? 'Hide Hours' : 'Show Hours';
+            if (hoursButton) {
+                hoursButton.textContent = text;
+                hoursButton.classList.toggle('active', isActive);
+            }
+            const mobileBtn = document.getElementById('mobile-hours');
+            if (mobileBtn) {
+                mobileBtn.classList.toggle('active', isActive);
+            }
+        }
+    };
+    if (hoursButton) hoursButton.addEventListener('click', toggleHours);
+
+
+    // --- MOBILE TOOLBAR BUTTONS ---
+    const mobileRotate = document.getElementById('mobile-rotate');
+    if (mobileRotate) mobileRotate.addEventListener('click', toggleRotation);
+
+    const mobileFast = document.getElementById('mobile-fast');
+    if (mobileFast) mobileFast.addEventListener('click', toggleFastMode);
+
+    const mobileHours = document.getElementById('mobile-hours');
+    if (mobileHours) mobileHours.addEventListener('click', toggleHours);
+
+    const mobileExplainer = document.getElementById('mobile-explainer');
+    if (mobileExplainer) mobileExplainer.addEventListener('click', () => {
+        document.getElementById('modal-explainer').style.display = 'block';
+    });
+
+
+    // --- SETTINGS PANEL ---
+    const settingsBtn = document.getElementById('settings-btn');
+    const settingsPanel = document.getElementById('settings-panel');
+    const closeSettings = document.getElementById('close-settings');
+
+    if (settingsBtn) {
+        settingsBtn.addEventListener('click', () => {
+            settingsPanel.classList.add('open');
+        });
+    }
+
+    if (closeSettings) {
+        closeSettings.addEventListener('click', () => {
+            settingsPanel.classList.remove('open');
+        });
+    }
+
+    // Close settings if clicking outside (optional, but nice)
+
+
+    // Settings Inputs
+    const shapeHours = document.getElementById('shape-hours');
+    const shapeMinutes = document.getElementById('shape-minutes');
+    const shapeSeconds = document.getElementById('shape-seconds');
+
+    if (shapeHours) {
+        shapeHours.addEventListener('change', (e) => {
+            setIndicatorShape('hours', e.target.value);
+        });
+    }
+    if (shapeMinutes) {
+        shapeMinutes.addEventListener('change', (e) => {
+            setIndicatorShape('minutes', e.target.value);
+        });
+    }
+    if (shapeSeconds) {
+        shapeSeconds.addEventListener('change', (e) => {
+            setIndicatorShape('seconds', e.target.value);
+        });
+    }
+
+    const tickSchemeSelect = document.getElementById('tick-scheme-select');
+    if (tickSchemeSelect) {
+        tickSchemeSelect.addEventListener('change', (e) => {
+            setTickScheme(e.target.value);
+        });
+    }
+
+
+    // --- MODAL LOGIC FOR EXPLAINER ---
+    const explainerButton = document.getElementById('explainer-button');
+    const modalExplainer = document.getElementById('modal-explainer');
+    const modalCloseButton = document.getElementById('modal-close-button');
+
+    // Open the modal (Desktop)
+    if (explainerButton) {
+        explainerButton.addEventListener('click', () => {
+            modalExplainer.style.display = 'block';
+        });
+    }
+
+    // Close the modal
+    if (modalCloseButton) {
+        modalCloseButton.addEventListener('click', () => {
+            modalExplainer.style.display = 'none';
+        });
+    }
+
+    // Also close the modal if the user clicks anywhere outside the content
+    modalExplainer.addEventListener('click', (event) => {
+        if (event.target === modalExplainer) {
+            modalExplainer.style.display = 'none';
+        }
+    });
+    // --- END MODAL LOGIC ---
+}
+
+function updateClock() {
+    const now = new Date();
+    let iHour24 = now.getHours();
+    let iMin60 = now.getMinutes();
+    let iSec60 = now.getSeconds();
+    let millisec = now.getMilliseconds();
+
+    const ampm = iHour24 >= 12 ? 'PM' : 'AM';
+    let iHour12 = iHour24 % 12;
+    iHour12 = iHour12 ? iHour12 : 12;
+    const digitalTime = `${iHour12}:${iMin60.toString().padStart(2, '0')}:${iSec60.toString().padStart(2, '0')} ${ampm}`;
+    document.getElementById('digital-time').textContent = digitalTime;
+
+    let sec60 = iSec60 + millisec / 1000;
+    let min60 = iMin60 + sec60 / 60;
+    let hour24 = iHour24 + min60 / 60;
+
+    if (fastMode) {
+        hour24 = (24.0 / 60.0) * sec60;
+        let hourFrac = hour24 - Math.floor(hour24);
+        min60 = hourFrac * 60;
+    }
+
+    if (secondSphere) {
+        const secAngle = Math.PI / 2 - (sec60 / 60) * 2 * Math.PI;
+        secondSphere.position.x = m_Radius * Math.cos(secAngle);
+        secondSphere.position.y = m_Radius * Math.sin(secAngle);
+        secondSphere.position.z = 0;
+
+        if (indicatorShapes.seconds === 'disc') {
+            // Tangent for circle is (-sin, cos, 0)
+            const tangent = new THREE.Vector3(-Math.sin(secAngle), Math.cos(secAngle), 0).normalize();
+            secondSphere.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), tangent);
+        } else {
+            secondSphere.rotation.set(0, 0, 0);
+        }
+    }
+
+    if (minuteSphere) {
+        const minAngle = Math.PI / 2 - (min60 / 60) * 2 * Math.PI;
+        minuteSphere.position.x = m_Radius * Math.cos(minAngle);
+        minuteSphere.position.y = m_Radius * Math.sin(minAngle);
+        minuteSphere.position.z = 0;
+
+        if (indicatorShapes.minutes === 'disc') {
+            const tangent = new THREE.Vector3(-Math.sin(minAngle), Math.cos(minAngle), 0).normalize();
+            minuteSphere.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), tangent);
+        } else {
+            minuteSphere.rotation.set(0, 0, 0);
+        }
+    }
+
+    const hourProgress = hour24 / 24;
+    const pathIndexFloat = ((NRECT / 2 - (hourProgress * (2 * NRECT))) % (2 * NRECT) + (2 * NRECT)) % (2 * NRECT);
+
+    const index1 = Math.floor(pathIndexFloat);
+    const index2 = (index1 + 1) % (2 * NRECT);
+    const fraction = pathIndexFloat - index1;
+
+    const p1 = edgePath[index1];
+    const p2 = edgePath[index2];
+
+    if (hourSphere && p1 && p2) {
+        hourSphere.position.lerpVectors(p1, p2, fraction);
+        if (indicatorShapes.hours === 'disc') {
+            const tangent = new THREE.Vector3().subVectors(p2, p1).normalize();
+            hourSphere.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), tangent);
+        }
+    }
+
+    // Billboard Hour Numbers
+    if (hourNumbersGroup && hourNumbersGroup.visible) {
+        hourNumbersGroup.children.forEach(child => {
+            child.lookAt(camera.position);
+        });
+    }
+}
+
+let indicatorShapes = {
+    hours: 'sphere',
+    minutes: 'sphere',
+    seconds: 'sphere'
+};
+
+function setIndicatorShape(type, shape) {
+    indicatorShapes[type] = shape;
+
+    // Define geometries based on shape
+    let geometry;
+    if (shape === 'disc') {
+        const h = 0.1; // Thickness of the disc
+        if (type === 'hours') geometry = new THREE.CylinderGeometry(m_HourSphereRadius, m_HourSphereRadius, h, 32);
+        else if (type === 'minutes') geometry = new THREE.CylinderGeometry(m_MinutesRadius, m_MinutesRadius, h, 32);
+        else if (type === 'seconds') geometry = new THREE.CylinderGeometry(m_SecondsRadius, m_SecondsRadius, h, 32);
+    } else {
+        if (type === 'hours') geometry = new THREE.SphereGeometry(m_HourSphereRadius, 32, 32);
+        else if (type === 'minutes') geometry = new THREE.SphereGeometry(m_MinutesRadius, 32, 32);
+        else if (type === 'seconds') geometry = new THREE.SphereGeometry(m_SecondsRadius, 32, 32);
+    }
+
+    // Update the specific mesh
+    if (type === 'hours') {
+        if (hourSphere) {
+            mobiusGroup.remove(hourSphere);
+            hourSphere.geometry.dispose(); // Clean up old geometry
+        }
+        const hourMat = new THREE.MeshStandardMaterial({ color: 0xADFF2F });
+        hourSphere = new THREE.Mesh(geometry, hourMat);
+        mobiusGroup.add(hourSphere);
+    } else if (type === 'minutes') {
+        if (minuteSphere) {
+            mobiusGroup.remove(minuteSphere);
+            minuteSphere.geometry.dispose();
+        }
+        const minuteMat = new THREE.MeshStandardMaterial({ color: 0x00FFFF });
+        minuteSphere = new THREE.Mesh(geometry, minuteMat);
+        mobiusGroup.add(minuteSphere);
+    } else if (type === 'seconds') {
+        if (secondSphere) {
+            mobiusGroup.remove(secondSphere);
+            secondSphere.geometry.dispose();
+        }
+        const secondMat = new THREE.MeshStandardMaterial({ color: 0xFF7F50 });
+        secondSphere = new THREE.Mesh(geometry, secondMat);
+        mobiusGroup.add(secondSphere);
+    }
+
+    // Trigger update to set positions immediately
+    updateClock();
+}
+
+function createClockHands() {
+    // Initialize all with default 'sphere'
+    setIndicatorShape('hours', 'sphere');
+    setIndicatorShape('minutes', 'sphere');
+    setIndicatorShape('seconds', 'sphere');
+}
+function handleWindowResize() {
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+
+    camera.aspect = width / height;
+    camera.updateProjectionMatrix();
+
+    renderer.setSize(width, height);
+
+    // Adjust camera distance for mobile to fit the model
+    if (width < 600) {
+        camera.position.z = 11.0; // Zoom in for mobile (10% larger than 12.5)
+    } else {
+        camera.position.z = 7.2; // Default for desktop (adjusted larger)
+    }
+}
+
+init();
+handleWindowResize();
+setupUIEventListeners();
+
+// Fullscreen Logic
+const fullscreenBtn = document.getElementById('fullscreen-btn');
+
+// Removed manual display logic to let CSS handle visibility based on orientation
+
+fullscreenBtn.addEventListener('click', () => {
+    if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(err => {
+            console.log(`Error attempting to enable fullscreen: ${err.message}`);
+        });
+    } else {
+        if (document.exitFullscreen) {
+            document.exitFullscreen();
+        }
+    }
+});
+
+document.addEventListener('fullscreenchange', () => {
+    if (document.fullscreenElement) {
+        fullscreenBtn.textContent = 'Exit';
+    } else {
+        fullscreenBtn.textContent = 'Fullscreen';
+    }
+});
+
+window.addEventListener('resize', handleWindowResize);
