@@ -745,10 +745,13 @@ function updateClock() {
             const centerPt = new THREE.Vector3().lerpVectors(centerPt1, centerPt2, fraction);
             const currentPos = hourSphere.position.clone();
             const dirOutward = new THREE.Vector3().subVectors(currentPos, centerPt).normalize();
-            const outerRadius = m_HourSphereRadius + 0.15;
+            const outerRadius = 0.4 + 0.10; // torus radius (0.4) + tube radius (0.10)
             hourSphere.position.addScaledVector(dirOutward, outerRadius);
+
+            // Orient torus axis perpendicular to strip plane (for rolling along edge)
             const tangent = new THREE.Vector3().subVectors(p2, p1).normalize();
-            hourSphere.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), tangent);
+            const normal = new THREE.Vector3().crossVectors(tangent, dirOutward).normalize();
+            hourSphere.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), normal);
         } else if (indicatorShapes.hours === 'disc') {
             const tangent = new THREE.Vector3().subVectors(p2, p1).normalize();
             hourSphere.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), tangent);
@@ -785,7 +788,13 @@ function setIndicatorShape(type, shape) {
     } else if (shape === 'ring' || shape === 'outer-ring') {
         // Ring (torus) - for minutes and hours
         if (type === 'hours') {
-            geometry = new THREE.TorusGeometry(m_HourSphereRadius, 0.15, 16, 32);
+            if (shape === 'outer-ring') {
+                // Outer ring: torus radius matches hour number offset (0.4), smaller tube
+                geometry = new THREE.TorusGeometry(0.4, 0.10, 16, 32);
+            } else {
+                // Regular ring
+                geometry = new THREE.TorusGeometry(m_HourSphereRadius, 0.15, 16, 32);
+            }
         } else if (type === 'minutes') {
             geometry = new THREE.TorusGeometry(m_MinutesRadius, 0.12, 16, 32);
         }
