@@ -716,6 +716,9 @@ function updateClock() {
         if (indicatorShapes.minutes === 'disc') {
             const tangent = new THREE.Vector3(-Math.sin(minAngle), Math.cos(minAngle), 0).normalize();
             minuteSphere.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), tangent);
+        } else if (indicatorShapes.minutes === 'ring') {
+            const tangent = new THREE.Vector3(-Math.sin(minAngle), Math.cos(minAngle), 0).normalize();
+            minuteSphere.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), tangent);
         } else {
             minuteSphere.rotation.set(0, 0, 0);
         }
@@ -733,9 +736,25 @@ function updateClock() {
 
     if (hourSphere && p1 && p2) {
         hourSphere.position.lerpVectors(p1, p2, fraction);
-        if (indicatorShapes.hours === 'disc') {
+
+        if (indicatorShapes.hours === 'outer-ring') {
+            const centerIndex1 = index1 % m_NumPoints;
+            const centerIndex2 = index2 % m_NumPoints;
+            const centerPt1 = m_RectCenter3DPtArray[centerIndex1];
+            const centerPt2 = m_RectCenter3DPtArray[centerIndex2];
+            const centerPt = new THREE.Vector3().lerpVectors(centerPt1, centerPt2, fraction);
+            const currentPos = hourSphere.position.clone();
+            const dirOutward = new THREE.Vector3().subVectors(currentPos, centerPt).normalize();
+            const outerRadius = m_HourSphereRadius + 0.15;
+            hourSphere.position.addScaledVector(dirOutward, outerRadius);
+            const tangent = new THREE.Vector3().subVectors(p2, p1).normalize();
+            hourSphere.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), tangent);
+        } else if (indicatorShapes.hours === 'disc') {
             const tangent = new THREE.Vector3().subVectors(p2, p1).normalize();
             hourSphere.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), tangent);
+        } else if (indicatorShapes.hours === 'ring') {
+            const tangent = new THREE.Vector3().subVectors(p2, p1).normalize();
+            hourSphere.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), tangent);
         }
     }
 
@@ -763,6 +782,13 @@ function setIndicatorShape(type, shape) {
         if (type === 'hours') geometry = new THREE.CylinderGeometry(m_HourSphereRadius, m_HourSphereRadius, h, 32);
         else if (type === 'minutes') geometry = new THREE.CylinderGeometry(m_MinutesRadius, m_MinutesRadius, h, 32);
         else if (type === 'seconds') geometry = new THREE.CylinderGeometry(m_SecondsRadius, m_SecondsRadius, h, 32);
+    } else if (shape === 'ring' || shape === 'outer-ring') {
+        // Ring (torus) - for minutes and hours
+        if (type === 'hours') {
+            geometry = new THREE.TorusGeometry(m_HourSphereRadius, 0.15, 16, 32);
+        } else if (type === 'minutes') {
+            geometry = new THREE.TorusGeometry(m_MinutesRadius, 0.12, 16, 32);
+        }
     } else {
         if (type === 'hours') geometry = new THREE.SphereGeometry(m_HourSphereRadius, 32, 32);
         else if (type === 'minutes') geometry = new THREE.SphereGeometry(m_MinutesRadius, 32, 32);
