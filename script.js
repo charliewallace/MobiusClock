@@ -686,7 +686,34 @@ function updateClock() {
     let min60 = iMin60 + sec60 / 60;
     let hour24 = iHour24 + min60 / 60;
 
-    if (fastMode) {
+    if (fastMode && indicatorShapes.hours === 'outer-ring') {
+        // Calculate raw fast time (24 hours in 60 seconds)
+        let rawFastHour24 = (24.0 / 60.0) * sec60;
+
+        // In fast mode, each hour takes 60/24 = 2.5 real seconds
+        // To pause for 1 second at each hour, detect when we're within
+        // 0.5 real seconds of an hour mark
+
+        // Calculate which hour we're closest to
+        let nearestHour = Math.round(rawFastHour24);
+
+        // Calculate the real seconds position where this hour occurs
+        let hourPositionInSeconds = nearestHour / 0.4; // Since hour24 = 0.4 * sec60
+
+        // Calculate how far we are (in real seconds) from this hour position
+        let secondsFromHour = Math.abs(sec60 - hourPositionInSeconds);
+
+        // If we're within 0.5 real seconds of an hour, pause at that hour
+        if (secondsFromHour < 0.5) {
+            hour24 = nearestHour;
+        } else {
+            hour24 = rawFastHour24;
+        }
+
+        // Don't modify min60 here - let it continue from the normal calculation
+        // so the minute indicator isn't affected by hour pauses
+    } else if (fastMode) {
+        // Normal fast mode without pauses (for other indicator shapes)
         hour24 = (24.0 / 60.0) * sec60;
         let hourFrac = hour24 - Math.floor(hour24);
         min60 = hourFrac * 60;
@@ -752,6 +779,35 @@ function updateClock() {
             const tangent = new THREE.Vector3().subVectors(p2, p1).normalize();
             const normal = new THREE.Vector3().crossVectors(tangent, dirOutward).normalize();
             hourSphere.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), normal);
+
+            // Add rotation animation during ±1 minute from each hour
+            // Calculate fractional hour (0-24) and find position within current hour
+            const fractionalHour = hour24 % 1; // 0 to 1 within each hour
+            const minutesFromHour = Math.abs(fractionalHour - 0.5) * 60; // Minutes from nearest hour (0=on hour, 30=halfway)
+            const minutesWithinHour = fractionalHour < 0.5 ? fractionalHour * 60 : (1 - fractionalHour) * 60; // 0-30 within hour
+
+            // Check if within ±1 minute of an hour
+            if (minutesWithinHour <= 1) {
+                let rotationAngle = 0;
+
+                if (fastMode) {
+                    // In fast mode: continuous rotation at 2x speed (one rotation per second)
+                    // Use real seconds to create smooth continuous rotation
+                    const currentSeconds = iSec60 + millisec / 1000;
+                    rotationAngle = currentSeconds * Math.PI * 2; // Complete rotation every 1 second (2x speed)
+                } else {
+                    // Normal mode: one rotation every 2 seconds
+                    // Use real seconds to create smooth continuous rotation
+                    const currentSeconds = iSec60 + millisec / 1000;
+                    rotationAngle = (currentSeconds / 2) * Math.PI * 2; // Complete rotation every 2 seconds
+                }
+
+                // Apply rotation around the axis from torus center to nearest strip point
+                // This axis is the opposite of dirOutward (which points from strip to torus)
+                const rotationAxis = new THREE.Vector3().copy(dirOutward).negate();
+                const rotationQuat = new THREE.Quaternion().setFromAxisAngle(rotationAxis, rotationAngle);
+                hourSphere.quaternion.multiply(rotationQuat);
+            }
         } else if (indicatorShapes.hours === 'disc') {
             const tangent = new THREE.Vector3().subVectors(p2, p1).normalize();
             hourSphere.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), tangent);
