@@ -852,7 +852,7 @@ function handleWindowResize() {
 
     // Adjust camera distance for mobile to fit the model
     if (width < 600) {
-        camera.position.z = 12.0; // Zoom out for mobile to fit width
+        camera.position.z = 13.0; // Zoom out for mobile to fit width
     } else {
         camera.position.z = 7.2; // Default for desktop (adjusted larger)
     }
