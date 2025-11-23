@@ -804,9 +804,9 @@ function updateClock() {
                     rotationAngle = (currentSeconds / 2) * Math.PI * 2; // Complete rotation every 2 seconds
                 }
 
-                // Apply rotation around the tangent to the strip path
-                // This makes the torus spin like a wheel at the contact point
-                const rotationQuat = new THREE.Quaternion().setFromAxisAngle(tangent, rotationAngle);
+                // Apply rotation around the normal to the strip surface
+                // This axis connects the two edges of the strip and passes through the torus center
+                const rotationQuat = new THREE.Quaternion().setFromAxisAngle(normal, rotationAngle);
                 hourSphere.quaternion.multiply(rotationQuat);
             }
         } else if (indicatorShapes.hours === 'disc') {
