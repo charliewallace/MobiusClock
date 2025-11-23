@@ -710,8 +710,10 @@ function updateClock() {
             hour24 = rawFastHour24;
         }
 
-        // Don't modify min60 here - let it continue from the normal calculation
-        // so the minute indicator isn't affected by hour pauses
+        // Calculate min60 from raw fast time so minute indicator moves smoothly
+        // Don't use hour24 since it's paused at hours
+        let rawHourFrac = rawFastHour24 - Math.floor(rawFastHour24);
+        min60 = rawHourFrac * 60;
     } else if (fastMode) {
         // Normal fast mode without pauses (for other indicator shapes)
         hour24 = (24.0 / 60.0) * sec60;
@@ -802,10 +804,9 @@ function updateClock() {
                     rotationAngle = (currentSeconds / 2) * Math.PI * 2; // Complete rotation every 2 seconds
                 }
 
-                // Apply rotation around the axis from torus center to nearest strip point
-                // This axis is the opposite of dirOutward (which points from strip to torus)
-                const rotationAxis = new THREE.Vector3().copy(dirOutward).negate();
-                const rotationQuat = new THREE.Quaternion().setFromAxisAngle(rotationAxis, rotationAngle);
+                // Apply rotation around the tangent to the strip path
+                // This makes the torus spin like a wheel at the contact point
+                const rotationQuat = new THREE.Quaternion().setFromAxisAngle(tangent, rotationAngle);
                 hourSphere.quaternion.multiply(rotationQuat);
             }
         } else if (indicatorShapes.hours === 'disc') {
