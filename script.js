@@ -163,6 +163,7 @@ let rotationEnabled = false;
 let fastMode = false;
 let hourNumbersGroup;
 let mobiusStripMesh;
+let topRightLight;
 
 
 function init() {
@@ -185,8 +186,8 @@ function init() {
     directionalLight.position.set(0, 1, 1);
     scene.add(directionalLight);
 
-    const topRightLight = new THREE.DirectionalLight(0xffffff, 0.8);
-    topRightLight.position.set(1, 1, 2);
+    topRightLight = new THREE.DirectionalLight(0xffffff, 0.8); // 2nd parameter is intensity
+    topRightLight.position.set(1, 1, 2); // the parameters are x, y, z position in units of
     scene.add(topRightLight);
 
     mobiusGroup = new THREE.Group();
@@ -520,6 +521,17 @@ function animate() {
     updateClock();
     if (rotationEnabled) {
         mobiusGroup.rotation.y += 0.005;
+    }
+
+    if (topRightLight) {
+        const time = Date.now() * 0.001; // seconds
+        const radius = 0.5;
+        const centerX = 1;
+        const centerZ = 2;
+        const period = 15.0; // seconds
+        const angle = (time / period) * Math.PI * 2;
+        topRightLight.position.x = centerX + Math.cos(angle) * radius;
+        topRightLight.position.z = centerZ + Math.sin(angle) * radius;
     }
     renderer.render(scene, camera);
 }
