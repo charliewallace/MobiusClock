@@ -775,7 +775,7 @@ function updateClock() {
 
             // Orient torus axis perpendicular to both dirOutward and strip plane
             // This aligns torus axis with the normal (perpendicular to strip surface)
-            hourSphere.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), normal);
+            hourSphere.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), tangent);
 
             // Add rotation animation during ±1 minute from each hour
             // Calculate fractional hour (0-24) and find position within current hour
