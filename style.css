@@ -101,8 +101,58 @@
         }
 
         #controls-desktop {
-            display: flex;
+            display: grid;
+            grid-template-columns: auto auto auto;
+            grid-template-rows: auto auto;
+            gap: 10px;
             align-items: center;
+        }
+
+        /* Grid placement for Desktop L-shape */
+        #rotation-button {
+            grid-column: 1;
+            grid-row: 2;
+        }
+
+        #fast-mode-button {
+            grid-column: 2;
+            grid-row: 2;
+        }
+
+        #zen-button {
+            grid-column: 3;
+            grid-row: 2;
+        }
+
+        #hours-button {
+            grid-column: 3;
+            grid-row: 1;
+        }
+
+        /* Zen Mode Active State */
+        body.zen-active #top-bar,
+        body.zen-active #bottom-bar .ui-element:first-child,
+        /* Left side of bottom bar */
+        body.zen-active #settings-btn,
+        body.zen-active #fullscreen-btn,
+        body.zen-active #rotation-button,
+        body.zen-active #fast-mode-button,
+        body.zen-active #hours-button,
+        body.zen-active #mobile-hours,
+        body.zen-active #mobile-fast,
+        body.zen-active #mobile-rotate,
+        body.zen-active #mobile-explainer,
+        body.zen-active #mobile-info-overlay {
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.5s ease;
+        }
+
+        /* Ensure Zen button stays visible */
+        body.zen-active #zen-button,
+        body.zen-active #mobile-zen {
+            opacity: 1;
+            pointer-events: auto;
         }
 
         #digital-time {
@@ -409,23 +459,40 @@
             }
 
             /* Corner buttons in landscape */
-            /* Corner buttons in landscape */
-            /* Corner buttons in landscape */
             #mobile-controls-right {
                 position: fixed !important;
-                /* Match Fullscreen button behavior */
                 right: 10px !important;
-                /* Standard padding */
                 bottom: 15px;
-                /* Moved down from 40px to avoid overlap */
-                flex-direction: column-reverse;
-                gap: 15px;
-                /* Safety Resets */
-                left: auto;
+                display: grid;
+                grid-template-columns: auto auto auto;
+                grid-template-rows: auto auto;
+                gap: 10px;
+                /* Reset flex properties */
+                flex-direction: row;
+                align-items: center;
                 width: auto;
+                left: auto;
                 transform: none;
-                align-items: flex-end;
-                /* Ensure buttons align to the right edge */
+            }
+
+            #mobile-rotate {
+                grid-column: 1;
+                grid-row: 2;
+            }
+
+            #mobile-fast {
+                grid-column: 2;
+                grid-row: 2;
+            }
+
+            #mobile-zen {
+                grid-column: 3;
+                grid-row: 2;
+            }
+
+            #mobile-hours {
+                grid-column: 3;
+                grid-row: 1;
             }
 
             #mobile-controls-right .icon-btn {

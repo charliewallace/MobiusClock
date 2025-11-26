@@ -164,6 +164,8 @@ let fastMode = false;
 let hourNumbersGroup;
 let mobiusStripMesh;
 let topRightLight;
+let zenMode = false;
+let preZenState = {};
 
 
 function init() {
@@ -598,6 +600,12 @@ function setupUIEventListeners() {
     const mobileHours = document.getElementById('mobile-hours');
     if (mobileHours) mobileHours.addEventListener('click', toggleHours);
 
+    const zenButton = document.getElementById('zen-button');
+    if (zenButton) zenButton.addEventListener('click', toggleZenMode);
+
+    const mobileZen = document.getElementById('mobile-zen');
+    if (mobileZen) mobileZen.addEventListener('click', toggleZenMode);
+
     const mobileExplainer = document.getElementById('mobile-explainer');
     if (mobileExplainer) mobileExplainer.addEventListener('click', () => {
         document.getElementById('modal-explainer').style.display = 'block';
@@ -679,6 +687,93 @@ function setupUIEventListeners() {
         }
     });
     // --- END MODAL LOGIC ---
+}
+
+function toggleZenMode() {
+    zenMode = !zenMode;
+    const body = document.body;
+    const zenBtn = document.getElementById('zen-button');
+    const mobileZenBtn = document.getElementById('mobile-zen');
+
+    if (zenMode) {
+        // Enter Zen Mode
+        body.classList.add('zen-active');
+        if (zenBtn) zenBtn.textContent = 'Exit Zen';
+        if (mobileZenBtn) mobileZenBtn.textContent = 'Exit';
+
+        // Save state
+        preZenState = {
+            hoursVisible: hourNumbersGroup ? hourNumbersGroup.visible : false,
+            tickScheme: currentTickScheme,
+            fastMode: fastMode
+        };
+
+        // Apply Zen settings
+        if (hourNumbersGroup) hourNumbersGroup.visible = false;
+        setTickScheme('standard'); // Standard ticks
+        if (fastMode) {
+            fastMode = false;
+        }
+
+    } else {
+        // Exit Zen Mode
+        body.classList.remove('zen-active');
+        if (zenBtn) zenBtn.textContent = 'Zen Mode';
+        if (mobileZenBtn) mobileZenBtn.textContent = 'Zen';
+
+        // Restore state
+        if (hourNumbersGroup) hourNumbersGroup.visible = preZenState.hoursVisible;
+        setTickScheme(preZenState.tickScheme);
+        fastMode = preZenState.fastMode;
+    }
+    updateUIButtons();
+}
+
+function updateUIButtons() {
+    // Helper to sync buttons with current state
+    const rotationButton = document.getElementById('rotation-button');
+    const fastModeButton = document.getElementById('fast-mode-button');
+    const hoursButton = document.getElementById('hours-button');
+    const mobileRotate = document.getElementById('mobile-rotate');
+    const mobileFast = document.getElementById('mobile-fast');
+    const mobileHours = document.getElementById('mobile-hours');
+
+    // Rotation (not affected by Zen, but good to sync)
+    if (rotationButton) {
+        rotationButton.textContent = rotationEnabled ? 'Stop Rotation' : 'Rotate';
+        rotationButton.classList.toggle('active', rotationEnabled);
+    }
+    if (mobileRotate) {
+        mobileRotate.textContent = rotationEnabled ? 'Stop' : 'Rotate';
+        mobileRotate.classList.toggle('active', rotationEnabled);
+    }
+
+    // Fast Mode
+    if (fastModeButton) {
+        fastModeButton.textContent = fastMode ? 'Stop Fast' : 'Fast Mode';
+        fastModeButton.classList.toggle('active', fastMode);
+    }
+    if (mobileFast) {
+        mobileFast.textContent = fastMode ? 'Stop' : 'Fast';
+        mobileFast.classList.toggle('active', fastMode);
+    }
+
+    // Hours
+    if (hoursButton) {
+        const isActive = hourNumbersGroup ? hourNumbersGroup.visible : false;
+        hoursButton.textContent = isActive ? 'Hide Hours' : 'Show Hours';
+        hoursButton.classList.toggle('active', isActive);
+    }
+    if (mobileHours) {
+        const isActive = hourNumbersGroup ? hourNumbersGroup.visible : false;
+        mobileHours.classList.toggle('active', isActive);
+    }
+
+    // Tick scheme select
+    const tickSchemeSelect = document.getElementById('tick-scheme-select');
+    if (tickSchemeSelect) {
+        tickSchemeSelect.value = currentTickScheme;
+    }
 }
 
 function updateClock() {
@@ -928,28 +1023,28 @@ handleWindowResize();
 setupUIEventListeners();
 
 // Fullscreen Logic
+// Fullscreen Logic
 const fullscreenBtn = document.getElementById('fullscreen-btn');
-
-// Removed manual display logic to let CSS handle visibility based on orientation
-
-fullscreenBtn.addEventListener('click', () => {
-    if (!document.fullscreenElement) {
-        document.documentElement.requestFullscreen().catch(err => {
-            console.log(`Error attempting to enable fullscreen: ${err.message}`);
-        });
-    } else {
-        if (document.exitFullscreen) {
-            document.exitFullscreen();
+if (fullscreenBtn) {
+    fullscreenBtn.addEventListener('click', () => {
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen().catch(err => {
+                console.log(`Error attempting to enable fullscreen: ${err.message}`);
+            });
+        } else {
+            if (document.exitFullscreen) {
+                document.exitFullscreen();
+            }
         }
-    }
-});
+    });
 
-document.addEventListener('fullscreenchange', () => {
-    if (document.fullscreenElement) {
-        fullscreenBtn.textContent = 'Exit';
-    } else {
-        fullscreenBtn.textContent = 'Fullscreen';
-    }
-});
+    document.addEventListener('fullscreenchange', () => {
+        if (document.fullscreenElement) {
+            fullscreenBtn.textContent = 'Exit';
+        } else {
+            fullscreenBtn.textContent = 'Fullscreen';
+        }
+    });
+}
 
 window.addEventListener('resize', handleWindowResize);
