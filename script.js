@@ -735,8 +735,7 @@ function toggleZenMode() {
         if (hourNumbersGroup) hourNumbersGroup.visible = preZenState.hoursVisible;
         setTickScheme(preZenState.tickScheme);
         fastMode = preZenState.fastMode;
-        body.style.backgroundImage = //preZenState.backgroundImage;  // Restore background
-            scene.background.setHex(preZenState.sceneBackground);
+        scene.background.setHex(preZenState.sceneBackground);
         body.style.backgroundColor = preZenState.backgroundColor;
         console.log('Restored background');
     }
