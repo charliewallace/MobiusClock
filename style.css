@@ -6,6 +6,8 @@
             /* Medium gray */
             overflow: hidden;
             /* Prevent scrollbars */
+            transition: background 0.8s ease;
+            /* Smooth transition for Zen Mode */
         }
 
         #container {

@@ -705,15 +705,23 @@ function toggleZenMode() {
         preZenState = {
             hoursVisible: hourNumbersGroup ? hourNumbersGroup.visible : false,
             tickScheme: currentTickScheme,
-            fastMode: fastMode
+            fastMode: fastMode,
+            backgroundImage: body.style.backgroundImage || '',  // Save original background
+            backgroundColor: body.style.backgroundColor || ''
         };
 
         // Apply Zen settings
         if (hourNumbersGroup) hourNumbersGroup.visible = false;
-        setTickScheme('standard'); // Standard ticks
+        setTickScheme('minimal'); // Minimal ticks (hour only)
         if (fastMode) {
             fastMode = false;
         }
+        // Apply radial gradient vignette
+        console.log('Setting Zen background gradient...');
+        body.style.backgroundImage = 'radial-gradient(circle at center, #666 0%, #1a1a1a 100%)';
+        body.style.backgroundColor = '';  // Clear the solid color
+        console.log('Background applied:', body.style.backgroundImage);
+        console.log('Computed background:', window.getComputedStyle(body).backgroundImage);
 
     } else {
         // Exit Zen Mode
@@ -725,6 +733,9 @@ function toggleZenMode() {
         if (hourNumbersGroup) hourNumbersGroup.visible = preZenState.hoursVisible;
         setTickScheme(preZenState.tickScheme);
         fastMode = preZenState.fastMode;
+        body.style.backgroundImage = preZenState.backgroundImage;  // Restore background
+        body.style.backgroundColor = preZenState.backgroundColor;
+        console.log('Restored background');
     }
     updateUIButtons();
 }
