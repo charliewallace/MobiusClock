@@ -690,48 +690,43 @@ function setupUIEventListeners() {
 }
 
 function toggleZenMode() {
-    try {
-        zenMode = !zenMode;
-        const body = document.body;
-        const zenBtn = document.getElementById('zen-button');
-        const mobileZenBtn = document.getElementById('mobile-zen');
+    zenMode = !zenMode;
+    const body = document.body;
+    const zenBtn = document.getElementById('zen-button');
+    const mobileZenBtn = document.getElementById('mobile-zen');
 
-        if (zenMode) {
-            // Enter Zen Mode
-            body.classList.add('zen-active');
-            if (zenBtn) zenBtn.textContent = 'Exit Zen';
-            if (mobileZenBtn) mobileZenBtn.textContent = 'Exit';
+    if (zenMode) {
+        // Enter Zen Mode
+        body.classList.add('zen-active');
+        if (zenBtn) zenBtn.textContent = 'Exit Zen';
+        if (mobileZenBtn) mobileZenBtn.textContent = 'Exit';
 
-            // Save state
-            preZenState = {
-                hoursVisible: hourNumbersGroup ? hourNumbersGroup.visible : false,
-                tickScheme: currentTickScheme,
-                fastMode: fastMode
-            };
+        // Save state
+        preZenState = {
+            hoursVisible: hourNumbersGroup ? hourNumbersGroup.visible : false,
+            tickScheme: currentTickScheme,
+            fastMode: fastMode
+        };
 
-            // Apply Zen settings
-            if (hourNumbersGroup) hourNumbersGroup.visible = false;
-            setTickScheme('standard'); // Standard ticks
-            if (fastMode) {
-                fastMode = false;
-            }
-
-        } else {
-            // Exit Zen Mode
-            body.classList.remove('zen-active');
-            if (zenBtn) zenBtn.textContent = 'Zen Mode';
-            if (mobileZenBtn) mobileZenBtn.textContent = 'Zen';
-
-            // Restore state
-            if (hourNumbersGroup) hourNumbersGroup.visible = preZenState.hoursVisible;
-            setTickScheme(preZenState.tickScheme);
-            fastMode = preZenState.fastMode;
+        // Apply Zen settings
+        if (hourNumbersGroup) hourNumbersGroup.visible = false;
+        setTickScheme('standard'); // Standard ticks
+        if (fastMode) {
+            fastMode = false;
         }
-        updateUIButtons();
-    } catch (e) {
-        alert('Error in toggleZenMode: ' + e.message);
-        console.error(e);
+
+    } else {
+        // Exit Zen Mode
+        body.classList.remove('zen-active');
+        if (zenBtn) zenBtn.textContent = 'Zen Mode';
+        if (mobileZenBtn) mobileZenBtn.textContent = 'Zen';
+
+        // Restore state
+        if (hourNumbersGroup) hourNumbersGroup.visible = preZenState.hoursVisible;
+        setTickScheme(preZenState.tickScheme);
+        fastMode = preZenState.fastMode;
     }
+    updateUIButtons();
 }
 
 function updateUIButtons() {
