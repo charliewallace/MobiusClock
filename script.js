@@ -505,7 +505,7 @@ function createHourNumbers() {
             const dir = new THREE.Vector3().subVectors(p, centerPt).normalize();
 
             // Position slightly outside
-            const pos = new THREE.Vector3().copy(p).add(dir.multiplyScalar(0.4));
+            const pos = new THREE.Vector3().copy(p).add(dir.multiplyScalar(0.53));
             hourGroup.position.copy(pos);
 
             // Orient text to face outward from the strip (Initial orientation)
@@ -886,7 +886,7 @@ function updateClock() {
             const centerPt = new THREE.Vector3().lerpVectors(centerPt1, centerPt2, fraction);
             const currentPos = hourSphere.position.clone();
             const dirOutward = new THREE.Vector3().subVectors(currentPos, centerPt).normalize();
-            const outerRadius = 0.4 + 0.10; // torus radius (0.4) + tube radius (0.10)
+            const outerRadius = 0.4 + 0.13; // torus radius (0.4) + tube radius (0.13)
             hourSphere.position.addScaledVector(dirOutward, outerRadius);
 
             // Calculate vectors for torus orientation
@@ -963,7 +963,7 @@ function setIndicatorShape(type, shape) {
         if (type === 'hours') {
             if (shape === 'outer-ring') {
                 // Outer ring: torus radius matches hour number offset (0.4), smaller tube
-                geometry = new THREE.TorusGeometry(0.4, 0.10, 16, 32);
+                geometry = new THREE.TorusGeometry(0.4, 0.13, 16, 32);
             } else {
                 // Regular ring
                 geometry = new THREE.TorusGeometry(m_HourSphereRadius, 0.15, 16, 32);
