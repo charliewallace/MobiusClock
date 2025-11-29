@@ -929,6 +929,21 @@ function updateClock() {
             const tangent = new THREE.Vector3().subVectors(p2, p1).normalize();
             hourSphere.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), tangent);
         } else if (indicatorShapes.hours === 'ring') {
+            // Revert to using edge position and dirOutward
+            const centerIndex1 = index1 % m_NumPoints;
+            const centerIndex2 = index2 % m_NumPoints;
+            const centerPt1 = m_RectCenter3DPtArray[centerIndex1];
+            const centerPt2 = m_RectCenter3DPtArray[centerIndex2];
+            const centerPt = new THREE.Vector3().lerpVectors(centerPt1, centerPt2, fraction);
+
+            // hourSphere.position is currently at edgePos (from line 879)
+            const edgePos = hourSphere.position.clone();
+            const dirOutward = new THREE.Vector3().subVectors(edgePos, centerPt).normalize();
+
+            // Move outward from edge so inner edge touches strip edge
+            const tubeRadius = 0.15;
+            hourSphere.position.addScaledVector(dirOutward, m_HourSphereRadius - tubeRadius);
+
             const tangent = new THREE.Vector3().subVectors(p2, p1).normalize();
             hourSphere.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), tangent);
         }
