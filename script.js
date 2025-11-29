@@ -159,6 +159,7 @@ function generateMobius3dPoints() {
 // grab params from the url.
 var timeStyle = "ampm";
 var params = window.location.hash;
+console.log('Raw Hash:', params);
 if (params.includes("timeStyle=24")) {
     timeStyle = "24";
 }
