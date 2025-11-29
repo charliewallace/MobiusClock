@@ -1,7 +1,14 @@
-/*  THEORY of how the Mobius strip is constructed:
+/*  
+This app was created by Charlie Wallace of Carlsbad, CA, copyright 2025.
+ATTN: you can pass in parameters to the app using the URL hash.  For example:
+   www.mobiusclock.com/#timeStyle=24
+   Will result in use of 24 hour time conventions, with 2-digit hours (00-23).
+
+THEORY of how the Mobius strip is constructed:
 We start with a circle of radius m_Radius. This is not actually drawn on the screen, it's simply a theoretical
 circle that forms the centerline of the Mobius strip. Picture it positioned vertically.
-  The next theoretical step: picture a series of NRECT long slender rectangles
+
+The next theoretical step: picture a series of NRECT long slender rectangles
 placed on the circle such that it passes perpendicularly through the center of each rectangle.  The first one 
 is at the bottom of the circle, positioned so the long axis is horizontal.  We can imagine initially all of them in this
 orientation; next we will rotate each one around it's center by an angle of m_Theta = 2*PI/NRECT more than the previous one.
@@ -50,6 +57,7 @@ We also need to define the hour, minute, and second indicators. For this we use 
 spheres and cylinders, and position them relative to the center of the strip.
  
 */
+
 // Constants for Mobius strip generation
 const NRECT = 360;
 const m_NumPoints = NRECT;
