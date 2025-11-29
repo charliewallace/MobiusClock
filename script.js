@@ -156,6 +156,14 @@ function generateMobius3dPoints() {
     }
 }
 
+// grab params from the url.
+var timeStyle = "ampm";
+var params = window.location.hash;
+if (params.includes("timeStyle=24")) {
+    timeStyle = "24";
+}
+//timeStyle = "24"; // for testing
+
 generateMobius3dPoints();
 
 let scene, camera, renderer, mobiusGroup;
@@ -413,11 +421,21 @@ function createHourNumbers() {
         for (let h = 1; h <= 24; h++) {
             let hourNumStr = h.toString();
             let suffixStr = 'AM';
-
-            if (h === 24) { hourNumStr = '12'; suffixStr = 'AM'; }
-            else if (h === 12) { hourNumStr = '12'; suffixStr = 'PM'; }
-            else if (h > 12) { hourNumStr = (h - 12).toString(); suffixStr = 'PM'; }
-            else { hourNumStr = h.toString(); suffixStr = 'AM'; }
+            if (timeStyle === "24") {
+                suffixStr = '';
+                if (h === 24) {
+                    hourNumStr = '00';
+                }
+                else {
+                    hourNumStr = h.toString().padStart(2, '0');
+                }
+            }
+            else {
+                if (h === 24) { hourNumStr = '12'; suffixStr = 'AM'; }
+                else if (h === 12) { hourNumStr = '12'; suffixStr = 'PM'; }
+                else if (h > 12) { hourNumStr = (h - 12).toString(); suffixStr = 'PM'; }
+                else { hourNumStr = h.toString(); suffixStr = 'AM'; }
+            }
 
             const hourGroup = new THREE.Group();
 
@@ -434,44 +452,51 @@ function createHourNumbers() {
             const numMesh = new THREE.Mesh(numGeo, textMaterial);
             hourGroup.add(numMesh);
 
-            // 2. Suffix Meshes (Stacked)
-            const topChar = suffixStr[0]; // 'A' or 'P'
-            const botChar = suffixStr[1]; // 'M'
-            const suffixSize = 0.12;
-            const marginX = 0.05; // Increased margin
+            var suffixWidth = 0;
 
-            // Top Suffix
-            const topGeo = new THREE.TextGeometry(topChar, {
-                font: font,
-                size: suffixSize,
-                height: 0.02,
-                curveSegments: 4,
-                bevelEnabled: false
-            });
-            const topMesh = new THREE.Mesh(topGeo, textMaterial);
-            // Use boundingBox.max.x to position relative to the actual right edge of the number
-            topMesh.position.set(numGeo.boundingBox.max.x + marginX, 0.13, 0);
-            hourGroup.add(topMesh);
+            var marginX = 0;
 
-            // Bottom Suffix
-            const botGeo = new THREE.TextGeometry(botChar, {
-                font: font,
-                size: suffixSize,
-                height: 0.02,
-                curveSegments: 4,
-                bevelEnabled: false
-            });
-            const botMesh = new THREE.Mesh(botGeo, textMaterial);
-            botMesh.position.set(numGeo.boundingBox.max.x + marginX, 0.0, 0);
-            hourGroup.add(botMesh);
+            if (timeStyle !== "24") {
+                // 2. Suffix Meshes (Stacked)
+                const topChar = suffixStr[0]; // 'A' or 'P'
+                const botChar = suffixStr[1]; // 'M'
+                const suffixSize = 0.12;
+                marginX = 0.05; // Increased margin
 
-            // 3. Center the content
-            // Approximate total width
-            topGeo.computeBoundingBox();
-            botGeo.computeBoundingBox();
-            const topWidth = topGeo.boundingBox.max.x - topGeo.boundingBox.min.x;
-            const botWidth = botGeo.boundingBox.max.x - botGeo.boundingBox.min.x;
-            const suffixWidth = Math.max(topWidth, botWidth);
+                // Top Suffix
+                const topGeo = new THREE.TextGeometry(topChar, {
+                    font: font,
+                    size: suffixSize,
+                    height: 0.02,
+                    curveSegments: 4,
+                    bevelEnabled: false
+                });
+                const topMesh = new THREE.Mesh(topGeo, textMaterial);
+                // Use boundingBox.max.x to position relative to the actual right edge of the number
+                topMesh.position.set(numGeo.boundingBox.max.x + marginX, 0.13, 0);
+                hourGroup.add(topMesh);
+
+                // Bottom Suffix
+                const botGeo = new THREE.TextGeometry(botChar, {
+                    font: font,
+                    size: suffixSize,
+                    height: 0.02,
+                    curveSegments: 4,
+                    bevelEnabled: false
+                });
+                const botMesh = new THREE.Mesh(botGeo, textMaterial);
+                botMesh.position.set(numGeo.boundingBox.max.x + marginX, 0.0, 0);
+                hourGroup.add(botMesh);
+
+                // 3. Center the content
+                // Approximate total width
+                topGeo.computeBoundingBox();
+                botGeo.computeBoundingBox();
+                const topWidth = topGeo.boundingBox.max.x - topGeo.boundingBox.min.x;
+                const botWidth = botGeo.boundingBox.max.x - botGeo.boundingBox.min.x;
+                suffixWidth = Math.max(topWidth, botWidth);
+            }
+
 
             // Total width is from min.x of number to max.x of suffix
             // We assume number starts around 0, but let's be precise
