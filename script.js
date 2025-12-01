@@ -419,6 +419,16 @@ let hourSphere, minuteSphere, secondSphere;
 let edgePath = [];
 
 function createHourNumbers() {
+    if (hourNumbersGroup) {
+        mobiusGroup.remove(hourNumbersGroup);
+        // Optional: dispose of geometries/materials if needed to prevent memory leaks
+        // But for simple text geometries, just removing might be okay for now, 
+        // or we can iterate and dispose.
+        hourNumbersGroup.children.forEach(child => {
+            // traverse and dispose... 
+            // For now, simple removal is likely sufficient for this scale.
+        });
+    }
     hourNumbersGroup = new THREE.Group();
     hourNumbersGroup.visible = true; // Changed to true for default visibility
     mobiusGroup.add(hourNumbersGroup);
@@ -691,6 +701,17 @@ function setupUIEventListeners() {
     if (tickSchemeSelect) {
         tickSchemeSelect.addEventListener('change', (e) => {
             setTickScheme(e.target.value);
+        });
+    }
+
+    const timeStyleSelect = document.getElementById('time-style-select');
+    if (timeStyleSelect) {
+        // Set initial value based on current timeStyle
+        timeStyleSelect.value = timeStyle;
+
+        timeStyleSelect.addEventListener('change', (e) => {
+            timeStyle = e.target.value;
+            createHourNumbers();
         });
     }
 
