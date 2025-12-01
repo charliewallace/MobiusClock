@@ -949,9 +949,9 @@ function updateClock() {
         let fractionalHour = rawFastHour24 % 1; // 0 to 1 within each hour
         let minutesWithinHour = fractionalHour < 0.5 ? fractionalHour * 60 : (1 - fractionalHour) * 60;
 
-        // In fast mode: pause when within ±12 clock minutes (= 1 real second) to show full rotation
-        // Rotation completes in 1 real second, and 1 real second = 24 clock minutes in fast mode
-        if (minutesWithinHour <= 12) {
+        // In fast mode with outer-ring, pause briefly at each hour
+        // Use smaller window (6 minutes = 0.25 seconds real time) to minimize position jump
+        if (minutesWithinHour <= 6) {
             hour24 = Math.round(rawFastHour24);
         } else {
             hour24 = rawFastHour24;
@@ -1069,8 +1069,9 @@ function updateClock() {
             const minutesFromHour = Math.abs(fractionalHour - 0.5) * 60; // Minutes from nearest hour (0=on hour, 30=halfway)
             const minutesWithinHour = fractionalHour < 0.5 ? fractionalHour * 60 : (1 - fractionalHour) * 60; // 0-30 within hour
 
-            // Check if within ±1 minute of an hour
-            if (minutesWithinHour <= 1) {
+            // Check if within rotation window
+            const rotationWindow = fastMode ? 6 : 1; // ±6 minutes in fast mode, ±1 in normal
+            if (minutesWithinHour <= rotationWindow) {
                 let rotationAngle = 0;
 
                 if (fastMode) {
