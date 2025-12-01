@@ -166,22 +166,72 @@ function generateMobius3dPoints() {
 
 // grab params from the url.
 var timeStyle = "ampm";
-var params = window.location.hash;
-console.log('Raw Hash:', params);
-if (params.includes("timeStyle=24")) {
-    timeStyle = "24";
-}
-//timeStyle = "24"; // for testing
+let rotationEnabled = false;
+let fastMode = false;
+let zenMode = false;
+let initialHoursVisible = true;
+let indicatorShapes = {
+    hours: 'outer-ring',
+    minutes: 'ring',
+    seconds: 'sphere'
+};
+let currentTickScheme = 'standard';
 
+function parseUrlParams() {
+    const params = new URLSearchParams(window.location.hash.substring(1)); // Remove #
+
+    // Time Style
+    if (params.has('timeStyle')) {
+        const val = params.get('timeStyle');
+        if (val === '24' || val === 'ampm') {
+            timeStyle = val;
+        }
+    }
+
+    // Shapes
+    if (params.has('shapeHours')) indicatorShapes.hours = params.get('shapeHours');
+    if (params.has('shapeMinutes')) indicatorShapes.minutes = params.get('shapeMinutes');
+    if (params.has('shapeSeconds')) indicatorShapes.seconds = params.get('shapeSeconds');
+
+    // Tick Scheme
+    if (params.has('tickScheme')) currentTickScheme = params.get('tickScheme');
+
+    // Rotation
+    if (params.has('rotation')) {
+        const val = params.get('rotation').toLowerCase();
+        rotationEnabled = (val === 'true' || val === 'on');
+    }
+
+    // Hours Visibility
+    if (params.has('showHours')) {
+        const val = params.get('showHours').toLowerCase();
+        initialHoursVisible = (val === 'true' || val === 'on');
+    }
+
+    // Zen Mode (handled post-init)
+    if (params.has('zen')) {
+        const val = params.get('zen').toLowerCase();
+        // We store this in a temp property to trigger later, or just set the flag 
+        // But we need to be careful about the toggle logic.
+        // Let's return it.
+        return (val === 'true' || val === 'on');
+    }
+    return false;
+}
+
+const startInZen = parseUrlParams();
+
+// generateMobius3dPoints(); // Moved call to be explicit or keep it here? 
+// It was here before.
 generateMobius3dPoints();
 
 let scene, camera, renderer, mobiusGroup;
-let rotationEnabled = false;
-let fastMode = false;
+// rotationEnabled declared above
+// fastMode declared above
 let hourNumbersGroup;
 let mobiusStripMesh;
 let topRightLight;
-let zenMode = false;
+// zenMode declared above
 let preZenState = {};
 
 
@@ -408,7 +458,7 @@ function createMobiusStripMesh() {
     mobiusGroup.add(mobiusStripMesh);
 }
 
-let currentTickScheme = 'standard';
+
 
 function setTickScheme(scheme) {
     currentTickScheme = scheme;
@@ -430,7 +480,7 @@ function createHourNumbers() {
         });
     }
     hourNumbersGroup = new THREE.Group();
-    hourNumbersGroup.visible = true; // Changed to true for default visibility
+    hourNumbersGroup.visible = initialHoursVisible;
     mobiusGroup.add(hourNumbersGroup);
 
     const loader = new THREE.FontLoader();
@@ -844,6 +894,36 @@ function updateUIButtons() {
     }
 }
 
+function syncUIWithState() {
+    updateUIButtons();
+
+    // Sync Shape Selects
+    const shapeHours = document.getElementById('shape-hours');
+    if (shapeHours) shapeHours.value = indicatorShapes.hours;
+
+    const shapeMinutes = document.getElementById('shape-minutes');
+    if (shapeMinutes) shapeMinutes.value = indicatorShapes.minutes;
+
+    const shapeSeconds = document.getElementById('shape-seconds');
+    if (shapeSeconds) shapeSeconds.value = indicatorShapes.seconds;
+
+    // Sync Time Style
+    const timeStyleSelect = document.getElementById('time-style-select');
+    if (timeStyleSelect) timeStyleSelect.value = timeStyle;
+
+    // Sync Zen Buttons (since updateUIButtons doesn't handle them fully)
+    const zenBtn = document.getElementById('zen-button');
+    const mobileZenBtn = document.getElementById('mobile-zen');
+    if (zenBtn) {
+        zenBtn.textContent = zenMode ? 'Exit Zen' : 'Zen Mode';
+        zenBtn.classList.toggle('active', zenMode);
+    }
+    if (mobileZenBtn) {
+        mobileZenBtn.textContent = zenMode ? 'Exit' : 'Zen';
+        mobileZenBtn.classList.toggle('active', zenMode);
+    }
+}
+
 function updateClock() {
     const now = new Date();
     let iHour24 = now.getHours();
@@ -1012,11 +1092,7 @@ function updateClock() {
     }
 }
 
-let indicatorShapes = {
-    hours: 'outer-ring',
-    minutes: 'ring',
-    seconds: 'sphere'
-};
+
 
 function setIndicatorShape(type, shape) {
     indicatorShapes[type] = shape;
@@ -1079,10 +1155,10 @@ function setIndicatorShape(type, shape) {
 }
 
 function createClockHands() {
-    // Initialize with new defaults
-    setIndicatorShape('hours', 'outer-ring');
-    setIndicatorShape('minutes', 'ring');
-    setIndicatorShape('seconds', 'sphere');
+    // Initialize with current indicatorShapes (defaults or from URL)
+    setIndicatorShape('hours', indicatorShapes.hours);
+    setIndicatorShape('minutes', indicatorShapes.minutes);
+    setIndicatorShape('seconds', indicatorShapes.seconds);
 }
 function handleWindowResize() {
     const width = window.innerWidth;
@@ -1104,6 +1180,11 @@ function handleWindowResize() {
 init();
 handleWindowResize();
 setupUIEventListeners();
+syncUIWithState();
+
+if (startInZen) {
+    toggleZenMode();
+}
 
 // Fullscreen Logic
 // Fullscreen Logic
