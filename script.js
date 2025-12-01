@@ -1019,8 +1019,39 @@ function updateClock() {
             const centerPt1 = m_RectCenter3DPtArray[centerIndex1];
             const centerPt2 = m_RectCenter3DPtArray[centerIndex2];
             const centerPt = new THREE.Vector3().lerpVectors(centerPt1, centerPt2, fraction);
-            const currentPos = hourSphere.position.clone();
-            const dirOutward = new THREE.Vector3().subVectors(currentPos, centerPt).normalize();
+
+            // Calculate the midpoint of the edge (center of thickness)
+            let edgeMidpoint1, edgeMidpoint2;
+            if (index1 < m_NumPoints) {
+                // First half: inner edge - midpoint between FrontInner and FrontOuter
+                edgeMidpoint1 = new THREE.Vector3().addVectors(
+                    m_FrontInnerCorner3DPtArray[centerIndex1],
+                    m_FrontOuterCorner3DPtArray[centerIndex1]
+                ).multiplyScalar(0.5);
+                edgeMidpoint2 = new THREE.Vector3().addVectors(
+                    m_FrontInnerCorner3DPtArray[centerIndex2],
+                    m_FrontOuterCorner3DPtArray[centerIndex2]
+                ).multiplyScalar(0.5);
+            } else {
+                // Second half: outer edge - midpoint between BackOuter and BackInner
+                edgeMidpoint1 = new THREE.Vector3().addVectors(
+                    m_BackOuterCorner3DPtArray[centerIndex1],
+                    m_BackInnerCorner3DPtArray[centerIndex1]
+                ).multiplyScalar(0.5);
+                edgeMidpoint2 = new THREE.Vector3().addVectors(
+                    m_BackOuterCorner3DPtArray[centerIndex2],
+                    m_BackInnerCorner3DPtArray[centerIndex2]
+                ).multiplyScalar(0.5);
+            }
+
+            // Interpolate the edge midpoint
+            const edgeMidpoint = new THREE.Vector3().lerpVectors(edgeMidpoint1, edgeMidpoint2, fraction);
+
+            // Calculate dirOutward from center to edge midpoint
+            const dirOutward = new THREE.Vector3().subVectors(edgeMidpoint, centerPt).normalize();
+
+            // Position the outer ring
+            hourSphere.position.copy(edgeMidpoint);
             const outerRadius = 0.4 + 0.13; // torus radius (0.4) + tube radius (0.13)
             hourSphere.position.addScaledVector(dirOutward, outerRadius);
 
@@ -1064,18 +1095,47 @@ function updateClock() {
             const tangent = new THREE.Vector3().subVectors(p2, p1).normalize();
             hourSphere.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), tangent);
         } else if (indicatorShapes.hours === 'ring') {
-            // Revert to using edge position and dirOutward
+            // Fix for ring positioning: Calculate dirOutward to point to center of edge
             const centerIndex1 = index1 % m_NumPoints;
             const centerIndex2 = index2 % m_NumPoints;
             const centerPt1 = m_RectCenter3DPtArray[centerIndex1];
             const centerPt2 = m_RectCenter3DPtArray[centerIndex2];
             const centerPt = new THREE.Vector3().lerpVectors(centerPt1, centerPt2, fraction);
 
-            // hourSphere.position is currently at edgePos (from line 879)
-            const edgePos = hourSphere.position.clone();
-            const dirOutward = new THREE.Vector3().subVectors(edgePos, centerPt).normalize();
+            // Calculate the midpoint of the edge (center of thickness)
+            let edgeMidpoint1, edgeMidpoint2;
+            if (index1 < m_NumPoints) {
+                // First half: inner edge - midpoint between FrontInner and FrontOuter
+                edgeMidpoint1 = new THREE.Vector3().addVectors(
+                    m_FrontInnerCorner3DPtArray[centerIndex1],
+                    m_FrontOuterCorner3DPtArray[centerIndex1]
+                ).multiplyScalar(0.5);
+                edgeMidpoint2 = new THREE.Vector3().addVectors(
+                    m_FrontInnerCorner3DPtArray[centerIndex2],
+                    m_FrontOuterCorner3DPtArray[centerIndex2]
+                ).multiplyScalar(0.5);
+            } else {
+                // Second half: outer edge - midpoint between BackOuter and BackInner
+                edgeMidpoint1 = new THREE.Vector3().addVectors(
+                    m_BackOuterCorner3DPtArray[centerIndex1],
+                    m_BackInnerCorner3DPtArray[centerIndex1]
+                ).multiplyScalar(0.5);
+                edgeMidpoint2 = new THREE.Vector3().addVectors(
+                    m_BackOuterCorner3DPtArray[centerIndex2],
+                    m_BackInnerCorner3DPtArray[centerIndex2]
+                ).multiplyScalar(0.5);
+            }
 
-            // Move outward from edge so inner edge touches strip edge
+            // Interpolate the edge midpoint
+            const edgeMidpoint = new THREE.Vector3().lerpVectors(edgeMidpoint1, edgeMidpoint2, fraction);
+
+            // Set position to the edge midpoint
+            hourSphere.position.copy(edgeMidpoint);
+
+            // Calculate dirOutward from center to edge midpoint
+            const dirOutward = new THREE.Vector3().subVectors(edgeMidpoint, centerPt).normalize();
+
+            // Move outward from edge so inner edge of torus touches strip edge
             const tubeRadius = 0.15;
             hourSphere.position.addScaledVector(dirOutward, m_HourSphereRadius - tubeRadius);
 
